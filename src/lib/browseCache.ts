@@ -45,3 +45,36 @@ export function setBrowseCache(key: string, banner: MediaItem[], rows: BrowseRow
     /* quota */
   }
 }
+
+export function listCachedCatalog(): MediaItem[] {
+  const seen = new Set<string>();
+  const items: MediaItem[] = [];
+
+  function add(item?: MediaItem | null) {
+    if (!item?.slug || seen.has(item.slug)) return;
+    seen.add(item.slug);
+    items.push(item);
+  }
+
+  function fromSnapshot(snap: BrowseSnapshot | null) {
+    if (!snap) return;
+    snap.banner.forEach(add);
+    for (const row of snap.rows) row.items.forEach(add);
+  }
+
+  for (const key of ['accueil', 'films', 'series', 'animation']) {
+    fromSnapshot(getBrowseCache(key));
+  }
+
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(KEY_PREFIX)) continue;
+      fromSnapshot(getBrowseCache(key.slice(KEY_PREFIX.length)));
+    }
+  } catch {
+    /* private mode */
+  }
+
+  return items;
+}

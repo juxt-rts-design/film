@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { type ContentTab } from '../config/catalog';
 import MobileDrawer from './MobileDrawer';
 import SearchAutocomplete from './SearchAutocomplete';
@@ -25,8 +25,11 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [params] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const searchTimer = useRef<number>(0);
   const activeTab = (params.get('tab') as ContentTab) || 'accueil';
   const searchQuery = params.get('q') || '';
+  const searching = searchOpen || location.pathname === '/search';
 
   useEffect(() => {
     if (location.pathname === '/search') {
@@ -34,6 +37,37 @@ export default function Navbar() {
       setSearchOpen(true);
     }
   }, [location.pathname, searchQuery]);
+
+  function closeSearch() {
+    window.clearTimeout(searchTimer.current);
+    setQuery('');
+    setSearchOpen(false);
+    if (location.pathname === '/search') navigate('/');
+  }
+
+  function onSearchChange(value: string) {
+    setQuery(value);
+    window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        if (location.pathname === '/search') navigate('/');
+        return;
+      }
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`, {
+        replace: location.pathname === '/search',
+      });
+    }, 120);
+  }
+
+  function goBrowse() {
+    if (location.pathname === '/search' || searchOpen) {
+      window.clearTimeout(searchTimer.current);
+      setQuery('');
+      setSearchOpen(false);
+    }
+    scrollToTop();
+  }
 
   function isTab(id: string) {
     if (location.pathname !== '/') return false;
@@ -55,7 +89,7 @@ export default function Navbar() {
             <IconMenu className="h-5 w-5" />
           </button>
 
-          <Link to="/" className="nf-nav__logo" onClick={scrollToTop}>
+          <Link to="/" className="nf-nav__logo" onClick={goBrowse}>
             <img src="/logo.svg" alt="" />
             <span>
               <em>Juxt</em>
@@ -70,7 +104,7 @@ export default function Navbar() {
                 to={item.to}
                 className={`nf-nav__link ${isTab(item.tab) ? 'is-active' : ''}`}
                 aria-current={isTab(item.tab) ? 'page' : undefined}
-                onClick={scrollToTop}
+                onClick={goBrowse}
               >
                 {item.label}
               </Link>
@@ -78,14 +112,14 @@ export default function Navbar() {
             <Link
               to="/liste"
               className={`nf-nav__link ${location.pathname === '/liste' ? 'is-active' : ''}`}
-              onClick={scrollToTop}
+              onClick={goBrowse}
             >
               Ma liste
             </Link>
             <Link
               to="/historique"
               className={`nf-nav__link ${location.pathname === '/historique' ? 'is-active' : ''}`}
-              onClick={scrollToTop}
+              onClick={goBrowse}
             >
               Historique
             </Link>
@@ -94,14 +128,11 @@ export default function Navbar() {
           <div className="nf-nav__right">
             <SearchAutocomplete
               value={query}
-              onChange={setQuery}
+              onChange={onSearchChange}
               variant="navbar"
-              collapsed={!searchOpen && location.pathname !== '/search'}
-              onToggle={() => setSearchOpen((open) => !open)}
-              onPick={() => {
-                setDrawerOpen(false);
-                setSearchOpen(false);
-              }}
+              collapsed={!searching}
+              onToggle={() => setSearchOpen(true)}
+              onClose={closeSearch}
               className="nf-nav__search"
             />
             <Link
@@ -137,7 +168,7 @@ export default function Navbar() {
                 ].join(' ')}
                 onClick={() => {
                   setDrawerOpen(false);
-                  scrollToTop();
+                  goBrowse();
                 }}
               >
                 <NavIconBox name={icon} active={active} />

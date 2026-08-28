@@ -220,26 +220,35 @@ export async function getCatalogMany(
   return items;
 }
 
-export function search(query: string, page = 1) {
+export async function search(query: string, page = 1) {
   const trimmed = query.trim();
   if (trimmed.length < 2) {
-    return Promise.resolve({
+    return {
       query: trimmed,
       page,
       total: 0,
       results: [],
-    } satisfies SearchPage);
-  }
-  return cachedFetch(`search:${trimmed}:${page}`, TTL.search, async () => {
-    const data = await request<Json>(`/api/fs-search?q=${encodeURIComponent(trimmed)}`);
-    const results = mapItems(data.results || data.items);
-    return {
-      query: str(data.query, trimmed),
-      page,
-      total: results.length,
-      results,
     } satisfies SearchPage;
-  });
+  }
+  try {
+    return await cachedFetch(`search:${trimmed}:${page}`, TTL.search, async () => {
+      const data = await request<Json>(`/api/fs-search?q=${encodeURIComponent(trimmed)}`);
+      const results = mapItems(data.results || data.items);
+      return {
+        query: str(data.query, trimmed),
+        page,
+        total: results.length,
+        results,
+      } satisfies SearchPage;
+    });
+  } catch {
+    return {
+      query: trimmed,
+      page,
+      total: 0,
+      results: [],
+    } satisfies SearchPage;
+  }
 }
 
 export async function searchSuggest(query: string) {
