@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { MediaItem } from '../types';
 import MediaCard from './MediaCard';
 
@@ -5,16 +6,24 @@ interface Props {
   title: string;
   description?: string;
   items: MediaItem[];
+  seeAllTo?: string;
 }
 
-export default function MediaRow({ title, description, items }: Props) {
+export default function MediaRow({ title, description, items, seeAllTo }: Props) {
   if (!items.length) return null;
 
   return (
-    <section className="section media-row max-w-[1440px] mx-auto px-4 py-7 sm:px-6 md:py-8">
-      <div className="section-head">
-        <h2>{title}</h2>
-        {description && <span className="section-desc">{description}</span>}
+    <section className="nf-row">
+      <div className="nf-row__head">
+        <div>
+          <h2>{title}</h2>
+          {description ? <p>{description}</p> : null}
+        </div>
+        {seeAllTo ? (
+          <Link to={seeAllTo} className="nf-row__all">
+            Voir plus
+          </Link>
+        ) : null}
       </div>
       <div className="media-row-scroller">
         {items.map((item) => (

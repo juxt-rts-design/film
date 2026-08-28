@@ -84,6 +84,23 @@ function inferType(title: string, hint = ''): MediaType {
   return 'movie';
 }
 
+export function parseSeasonNumber(...parts: Array<string | number | null | undefined>): number {
+  for (const part of parts) {
+    if (typeof part === 'number' && Number.isFinite(part) && part >= 1) {
+      return Math.floor(part);
+    }
+    if (typeof part !== 'string' || !part.trim()) continue;
+    const match =
+      part.match(/saison\s*(\d{1,2})/i) ||
+      part.match(/season\s*(\d{1,2})/i) ||
+      part.match(/\bS(?:E)?[\s._-]*0?(\d{1,2})\b/i);
+    if (!match) continue;
+    const value = Number(match[1]);
+    if (value >= 1) return value;
+  }
+  return 1;
+}
+
 function mapItem(raw: unknown, hint = ''): MediaItem | null {
   const item = asRecord(raw);
   const id = str(item.id || item.newsId);
@@ -152,9 +169,14 @@ export function getHome() {
 export function getCatalog(kind: 'films' | 'series' | 'animation' | 'genre', page = 1, genre = '') {
   return cachedFetch(`cat:${kind}:${genre}:${page}`, TTL.catalog, async () => {
     const params = new URLSearchParams({ page: String(page) });
-    if (kind === 'genre' && genre) params.set('genre', genre);
-    else if (kind === 'animation') params.set('genre', 'animation');
-    else params.set('category', kind);
+    if (kind === 'genre') {
+      if (genre) params.set('genre', genre);
+    } else if (kind === 'animation') {
+      params.set('genre', 'animation');
+    } else {
+      params.set('category', kind);
+      if (genre) params.set('genre', genre);
+    }
 
     const data = await request<Json>(`/api/fs-home?${params}`);
     const items = mapItems(data.items, kind === 'series' ? 'serie' : kind);
@@ -168,12 +190,51 @@ export function getCatalog(kind: 'films' | 'series' | 'animation' | 'genre', pag
   });
 }
 
+export async function getCatalogMany(
+  kind: 'films' | 'series' | 'animation' | 'genre',
+  pages = 5,
+  genre = '',
+) {
+  const batches = await Promise.all(
+    Array.from({ length: pages }, (_, index) =>
+      getCatalog(kind, index + 1, genre).catch(
+        () =>
+          ({
+            page: index + 1,
+            perPage: 0,
+            total: 0,
+            items: [],
+          }) satisfies CatalogPage,
+      ),
+    ),
+  );
+  const seen = new Set<string>();
+  const items: MediaItem[] = [];
+  for (const batch of batches) {
+    for (const item of batch.items) {
+      if (!item.slug || seen.has(item.slug)) continue;
+      seen.add(item.slug);
+      items.push(item);
+    }
+  }
+  return items;
+}
+
 export function search(query: string, page = 1) {
-  return cachedFetch(`search:${query}:${page}`, TTL.search, async () => {
-    const data = await request<Json>(`/api/fs-search?q=${encodeURIComponent(query)}`);
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return Promise.resolve({
+      query: trimmed,
+      page,
+      total: 0,
+      results: [],
+    } satisfies SearchPage);
+  }
+  return cachedFetch(`search:${trimmed}:${page}`, TTL.search, async () => {
+    const data = await request<Json>(`/api/fs-search?q=${encodeURIComponent(trimmed)}`);
     const results = mapItems(data.results || data.items);
     return {
-      query: str(data.query, query),
+      query: str(data.query, trimmed),
       page,
       total: results.length,
       results,
@@ -181,8 +242,13 @@ export function search(query: string, page = 1) {
   });
 }
 
-export function searchSuggest(query: string) {
-  return search(query, 1).then((data) => ({ results: data.results.slice(0, 8) }));
+export async function searchSuggest(query: string) {
+  try {
+    const data = await search(query, 1);
+    return { results: data.results.slice(0, 8) };
+  } catch {
+    return { results: [] };
+  }
 }
 
 function versionLabel(value: string) {
@@ -239,7 +305,12 @@ function mapDetail(data: Json): MediaDetail {
   const episodeMap = firstVersion ? asRecord(episodes[firstVersion]) : {};
   const playableEps = Object.keys(episodeMap).map(Number).filter(Boolean).sort((a, b) => a - b);
   const maxEp = playableEps.length ? playableEps[playableEps.length - 1] : episodeInfo.length;
-  const seasons = type === 'tv' && maxEp > 0 ? [{ season: 1, maxEp }] : [];
+  const seasonNum = parseSeasonNumber(
+    num(meta.season ?? meta.currentSeason ?? data.season),
+    title,
+    str(meta.originalTitle),
+  );
+  const seasons = type === 'tv' && maxEp > 0 ? [{ season: seasonNum, maxEp }] : [];
 
   const actors = str(meta.actors)
     .split(',')
@@ -404,11 +475,12 @@ export function mediaPath(item: Pick<MediaItem, 'slug'>) {
   return `/movie/${encodeURIComponent(item.slug)}`;
 }
 
-export function watchPath(slug: string, se?: number, ep?: number, ver?: string) {
+export function watchPath(slug: string, se?: number, ep?: number, ver?: string, t?: number) {
   const params = new URLSearchParams();
   if (se) params.set('se', String(se));
   if (ep) params.set('ep', String(ep));
   if (ver) params.set('ver', ver);
+  if (t && t > 0) params.set('t', String(Math.floor(t)));
   const query = params.toString();
   return `/watch/${encodeURIComponent(slug)}${query ? `?${query}` : ''}`;
 }

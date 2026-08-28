@@ -1,52 +1,48 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SearchAutocomplete from '../components/SearchAutocomplete';
 import MediaCard from '../components/MediaCard';
-import Pagination, { totalPagesFromCount } from '../components/Pagination';
 import { search } from '../lib/api';
 import type { MediaItem } from '../types';
 
 export default function Search() {
   const [params, setParams] = useSearchParams();
   const initialQuery = params.get('q') || '';
-  const page = Math.max(1, Number(params.get('page')) || 1);
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<MediaItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const totalPages = useMemo(
-    () => Math.min(40, totalPagesFromCount(total || results.length, 24)),
-    [total, results.length],
-  );
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
 
   useEffect(() => {
-    if (!initialQuery.trim()) return;
+    const trimmed = initialQuery.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
-    search(initialQuery, page)
+    search(trimmed)
       .then((data) => {
         setResults(data.results);
-        setTotal(data.total);
       })
-      .catch((err) => setError(err.message))
+      .catch(() => {
+        setResults([]);
+        setError(null);
+      })
       .finally(() => setLoading(false));
-  }, [initialQuery, page]);
+  }, [initialQuery]);
 
   function runSearch(term: string) {
-    if (term.trim()) {
-      setParams({ q: term.trim(), page: '1' });
+    if (term.trim().length >= 2) {
+      setParams({ q: term.trim() });
     }
-  }
-
-  function changePage(next: number) {
-    setParams({ q: initialQuery, page: String(next) });
   }
 
   return (
@@ -69,11 +65,14 @@ export default function Search() {
       </div>
 
       {loading && !results.length && <div className="page-loading">Recherche…</div>}
-      {error && <div className="page-error">{error}</div>}
 
-      {initialQuery && (results.length > 0 || !loading) && (
+      {initialQuery.trim().length === 1 && (
+        <p className="empty-state">Tapez au moins 2 lettres pour lancer la recherche.</p>
+      )}
+
+      {initialQuery.trim().length >= 2 && (results.length > 0 || !loading) && (
         <p className="results-count mb-4 text-sm text-juxt-muted">
-          Page {page} — {results.length} résultat{results.length !== 1 ? 's' : ''} pour « {initialQuery} »
+          {results.length} résultat{results.length !== 1 ? 's' : ''} pour « {initialQuery} »
         </p>
       )}
 
@@ -83,17 +82,8 @@ export default function Search() {
         ))}
       </div>
 
-      {!loading && initialQuery && results.length === 0 && !error && (
+      {!loading && initialQuery.trim().length >= 2 && results.length === 0 && !error && (
         <p className="empty-state">Aucun résultat trouvé.</p>
-      )}
-
-      {!loading && results.length > 0 && totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={changePage}
-          className="mt-8 md:mt-10"
-        />
       )}
     </div>
   );

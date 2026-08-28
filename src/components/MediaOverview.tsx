@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { MediaDetail } from '../types';
 import { listEpisodeNumbers, posterUrl, watchPath } from '../lib/api';
+import { getHistory, isResumable, resumePath } from '../lib/history';
+import FavoriteButton from './FavoriteButton';
 
 interface Props {
   detail: MediaDetail;
@@ -9,6 +11,9 @@ interface Props {
 export default function MediaOverview({ detail }: Props) {
   const version = detail.versions[0]?.value;
   const firstEp = listEpisodeNumbers(detail, version || 'vf')[0] || 1;
+  const history = getHistory(detail.slug);
+  const resumable = history ? isResumable(history) : false;
+  const playTo = resumable && history ? resumePath(history) : watchPath(detail.slug, 1, firstEp, version);
 
   return (
     <section className="anime-overview">
@@ -70,9 +75,22 @@ export default function MediaOverview({ detail }: Props) {
         </div>
       </div>
 
-      <Link to={watchPath(detail.slug, 1, firstEp, version)} className="btn-primary">
-        Regarder
-      </Link>
+      <div className="overview-actions">
+        <Link to={playTo} className="btn-primary">
+          {resumable ? 'Reprendre' : 'Lecture'}
+        </Link>
+        <FavoriteButton
+          item={{
+            id: detail.id,
+            slug: detail.slug,
+            title: detail.title,
+            poster: detail.poster,
+            type: detail.type,
+            year: Number(detail.year) || null,
+          }}
+          className="fav-btn--lg"
+        />
+      </div>
 
       {detail.synopsis && (
         <div className="overview-block" style={{ marginTop: 20 }}>

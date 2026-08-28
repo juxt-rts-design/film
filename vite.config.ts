@@ -26,6 +26,17 @@ export default defineConfig({
     host: true,
     port: 5174,
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'https://open-otaku.me',
+        changeOrigin: true,
+        secure: true,
+        headers: {
+          Referer: 'https://open-otaku.me/',
+          Origin: 'https://open-otaku.me',
+        },
+      },
+    },
   },
   build: {
     outDir: 'dist',

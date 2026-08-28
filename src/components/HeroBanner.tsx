@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { MediaItem } from '../types';
 import { prefetchDetail, posterUrl, watchPath } from '../lib/api';
+import { getHistory, isResumable, resumePath } from '../lib/history';
+import { useTitleModal } from '../context/TitleModalContext';
 
 interface Props {
   items: MediaItem[];
@@ -9,52 +11,67 @@ interface Props {
 }
 
 export default function HeroBanner({ items, tag = 'À la une' }: Props) {
+  const { openInfo } = useTitleModal();
   const [index, setIndex] = useState(0);
   const slides = items.slice(0, 8);
   const current = slides[index] || slides[0];
+  const history = current ? getHistory(current.slug) : undefined;
+  const resumable = history ? isResumable(history) : false;
 
   useEffect(() => {
     if (slides.length < 2) return;
     const timer = window.setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
-    }, 6500);
+    }, 8000);
     return () => window.clearInterval(timer);
   }, [slides.length]);
 
   if (!current) return <div className="skeleton-hero" />;
 
+  const playTo = resumable && history ? resumePath(history) : watchPath(current.slug);
+
   return (
-    <section
-      className="hero hero-carousel relative min-h-[280px] bg-cover bg-center sm:min-h-[340px] md:min-h-[420px]"
-      style={{ backgroundImage: `url(${posterUrl(current.poster)})` }}
-    >
-      <div className="hero-overlay" />
-      <div className="hero-content px-4 py-10 sm:px-8 sm:py-14 md:px-12">
-        <span className="hero-tag">{tag}</span>
-        <h1 className="max-w-3xl text-2xl font-bold sm:text-3xl md:text-4xl lg:text-[2.75rem]">
-          {current.title}
-        </h1>
-        <p className="hero-rating">
-          {current.rating ? `★ ${current.rating.toFixed(1)}` : ''}
-          {current.year ? `${current.rating ? ' · ' : ''}${current.year}` : ''}
+    <section className="nf-hero">
+      <div
+        className="nf-hero__art"
+        style={{ backgroundImage: `url(${posterUrl(current.poster)})` }}
+      />
+      <div className="nf-hero__shade" />
+      <div className="nf-hero__content">
+        <span className="nf-hero__tag">{tag}</span>
+        <h1>{current.title}</h1>
+        <p className="nf-hero__meta">
+          {[
+            current.type === 'tv' ? 'Série' : 'Film',
+            current.year,
+            current.quality,
+            current.rating ? `★ ${current.rating.toFixed(1)}` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
-        <Link
-          to={watchPath(current.slug)}
-          className="btn-primary"
-          onMouseEnter={() => prefetchDetail(current.slug)}
-          onFocus={() => prefetchDetail(current.slug)}
-        >
-          Regarder
-        </Link>
+        {current.description ? <p className="nf-hero__desc">{current.description}</p> : null}
+        <div className="nf-hero__actions">
+          <Link
+            to={playTo}
+            className="nf-btn nf-btn--play"
+            onMouseEnter={() => prefetchDetail(current.slug)}
+          >
+            ▶ {resumable ? 'Reprendre' : 'Lecture'}
+          </Link>
+          <button type="button" className="nf-btn nf-btn--info" onClick={() => openInfo(current)}>
+            ℹ Plus d’infos
+          </button>
+        </div>
       </div>
       {slides.length > 1 && (
-        <div className="hero-dots">
+        <div className="nf-hero__dots">
           {slides.map((slide, i) => (
             <button
               key={slide.id + slide.slug}
               type="button"
               className={`hero-dot ${i === index ? 'active' : ''}`}
-              aria-label={`Slide ${i + 1}`}
+              aria-label={`À la une ${i + 1}`}
               onClick={() => setIndex(i)}
             />
           ))}

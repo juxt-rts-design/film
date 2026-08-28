@@ -38,6 +38,38 @@ export const CONTENT_SECTIONS: NavSection[] = [
   },
 ];
 
+export const CATALOG_ROW_TITLES: Record<string, string[]> = {
+  films: ['Films du moment', 'À l’affiche', 'Encore plus de films', 'À découvrir', 'Catalogue films'],
+  series: ['Séries du moment', 'À ne pas manquer', 'Encore plus de séries', 'À découvrir', 'Catalogue séries'],
+  animation: ['Animation du moment', 'Pour tous les âges', 'Encore plus', 'Catalogue animation'],
+};
+
+export const CATALOG_GENRE_ROWS: Record<string, { id: string; label: string }[]> = {
+  films: [
+    { id: 'action', label: 'Action' },
+    { id: 'comedie', label: 'Comédie' },
+    { id: 'thriller', label: 'Thriller' },
+    { id: 'horreur', label: 'Horreur' },
+    { id: 'science-fiction', label: 'Science-fiction' },
+    { id: 'drame', label: 'Drame' },
+  ],
+  series: [
+    { id: 'drame', label: 'Séries dramatiques' },
+    { id: 'comedie', label: 'Séries comiques' },
+    { id: 'thriller', label: 'Thrillers' },
+    { id: 'policier', label: 'Policier' },
+    { id: 'action', label: 'Action' },
+    { id: 'science-fiction', label: 'Science-fiction' },
+  ],
+  animation: [],
+};
+
+export function chunkItems<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
+
 export const FS_GENRES = [
   { id: 'action', label: 'Action' },
   { id: 'aventure', label: 'Aventure' },
@@ -66,6 +98,18 @@ export const SECTION_LABELS: Record<string, string> = {
 
 export function translateSection(title: string) {
   return SECTION_LABELS[title] || title.trim();
+}
+
+export function homeSeeAllTo(title: string) {
+  const text = title.toLowerCase();
+  if (text.includes('série') || text.includes('serie')) return '/?tab=series';
+  if (text.includes('anim')) return '/?tab=animation';
+  if (text.includes('film') || text.includes('box')) return '/?tab=films';
+  const genre = FS_GENRES.find(
+    (entry) => text.includes(entry.label.toLowerCase()) || text.includes(entry.id),
+  );
+  if (genre) return `/?tab=genres&genre=${genre.id}`;
+  return '/?tab=films';
 }
 
 export function getSectionById(id: ContentTab): NavSection {

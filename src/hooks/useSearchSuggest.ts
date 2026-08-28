@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { searchSuggest } from '../lib/api';
 import type { MediaItem } from '../types';
 
-const DEBOUNCE_MS = 280;
-const MIN_CHARS = 1;
+const DEBOUNCE_MS = 160;
+const MIN_CHARS = 2;
 
 export function useSearchSuggest(query: string) {
   const [results, setResults] = useState<MediaItem[]>([]);
@@ -31,10 +31,10 @@ export function useSearchSuggest(query: string) {
           if (id !== requestId.current) return;
           setResults(data.results);
         })
-        .catch((err) => {
+        .catch(() => {
           if (id !== requestId.current) return;
           setResults([]);
-          setError(err instanceof Error ? err.message : 'Erreur');
+          setError(null);
         })
         .finally(() => {
           if (id !== requestId.current) return;

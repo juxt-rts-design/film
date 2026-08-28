@@ -1,22 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import ContinueRow from '../components/ContinueRow';
 import GenreBar from '../components/GenreBar';
 import HeroBanner from '../components/HeroBanner';
-import MediaCard from '../components/MediaCard';
 import MediaRow from '../components/MediaRow';
-import Pagination, { totalPagesFromCount } from '../components/Pagination';
-import SectionTabs from '../components/SectionTabs';
 import {
+  CATALOG_GENRE_ROWS,
+  CATALOG_ROW_TITLES,
   FS_GENRES,
+  chunkItems,
   getSectionById,
+  homeSeeAllTo,
   translateSection,
   type ContentTab,
 } from '../config/catalog';
-import { getCatalog, getHome } from '../lib/api';
-import type { CatalogSection, MediaItem } from '../types';
+import { getCatalogMany, getHome } from '../lib/api';
+import type { MediaItem } from '../types';
 
 const GRID_CLASS =
   'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7';
+
+const CATALOG_PAGES = 8;
+const ROW_SIZE = 24;
+
+interface BrowseRow {
+  title: string;
+  items: MediaItem[];
+  seeAllTo?: string;
+}
 
 function SkeletonGrid({ count = 12 }: { count?: number }) {
   return (
@@ -28,17 +39,23 @@ function SkeletonGrid({ count = 12 }: { count?: number }) {
   );
 }
 
+function rowsFromItems(items: MediaItem[], titles: string[], seeAllTo?: string): BrowseRow[] {
+  return chunkItems(items, ROW_SIZE)
+    .filter((chunk) => chunk.length > 0)
+    .map((chunk, index) => ({
+      title: titles[index] || titles[titles.length - 1] || 'Encore plus',
+      items: chunk,
+      seeAllTo,
+    }));
+}
+
 export default function Home() {
   const [params, setParams] = useSearchParams();
   const activeTab = (params.get('tab') as ContentTab) || 'accueil';
   const activeGenre = params.get('genre');
-  const page = Math.max(1, Number(params.get('page')) || 1);
 
   const [banner, setBanner] = useState<MediaItem[]>([]);
-  const [sections, setSections] = useState<CatalogSection[]>([]);
-  const [items, setItems] = useState<MediaItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [perPage, setPerPage] = useState(24);
+  const [browseRows, setBrowseRows] = useState<BrowseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastTabRef = useRef(activeTab);
@@ -54,23 +71,12 @@ export default function Home() {
 
   const setGenre = useCallback(
     (genreId: string | null) => {
-      const next = new URLSearchParams(params);
+      const next = new URLSearchParams();
       next.set('tab', 'genres');
-      next.delete('page');
       if (genreId) next.set('genre', genreId);
-      else next.delete('genre');
       setParams(next);
     },
-    [params, setParams],
-  );
-
-  const setPage = useCallback(
-    (nextPage: number) => {
-      const next = new URLSearchParams(params);
-      next.set('page', String(nextPage));
-      setParams(next);
-    },
-    [params, setParams],
+    [setParams],
   );
 
   useEffect(() => {
@@ -78,35 +84,102 @@ export default function Home() {
 
     async function load() {
       const sameTab = lastTabRef.current === activeTab;
-      const hasHome = activeTab === 'accueil' && sections.length > 0;
-      const hasCatalog = activeTab !== 'accueil' && items.length > 0;
-      if (!(sameTab && (hasHome || hasCatalog))) setLoading(true);
+      if (!sameTab) {
+        setBrowseRows([]);
+        setBanner([]);
+        setLoading(true);
+      } else if (!browseRows.length) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
         if (activeTab === 'accueil') {
-          const home = await getHome();
+          const [home, films, series, animation] = await Promise.all([
+            getHome(),
+            getCatalogMany('films', 5),
+            getCatalogMany('series', 5),
+            getCatalogMany('animation', 3),
+          ]);
           if (cancelled) return;
-          setBanner(home.banner);
-          setSections(home.sections);
-          setItems([]);
-        } else if (activeTab === 'genres') {
-          const data = await getCatalog('genre', page, activeGenre || 'action');
+
+          const rows: BrowseRow[] = [
+            ...home.sections.map((section) => ({
+              title: translateSection(section.title),
+              items: section.items,
+              seeAllTo: homeSeeAllTo(section.title),
+            })),
+            ...rowsFromItems(films, ['Films populaires', 'Encore plus de films'], '/?tab=films'),
+            ...rowsFromItems(series, ['Séries populaires', 'Encore plus de séries'], '/?tab=series'),
+            ...rowsFromItems(animation, ['Animation'], '/?tab=animation'),
+          ].filter((row) => row.items.length > 0);
+
+          setBanner(home.banner.length ? home.banner : films.slice(0, 8));
+          setBrowseRows(rows);
+          setLoading(false);
+          lastTabRef.current = activeTab;
+
+          const genreRows = await Promise.all(
+            FS_GENRES.map((genre) =>
+              getCatalogMany('genre', 2, genre.id).then((items) => ({
+                title: genre.label,
+                items,
+                seeAllTo: `/?tab=genres&genre=${genre.id}`,
+              })),
+            ),
+          );
           if (cancelled) return;
-          setItems(data.items);
-          setTotal(data.total);
-          setPerPage(data.perPage);
-          setBanner(data.items.slice(0, 8));
-          setSections([]);
+          setBrowseRows((current) => [
+            ...current,
+            ...genreRows.filter((row) => row.items.length > 5),
+          ]);
+          return;
+        }
+
+        if (activeTab === 'genres') {
+          const genreId = activeGenre || 'action';
+          const items = await getCatalogMany('genre', CATALOG_PAGES, genreId);
+          if (cancelled) return;
+          const label = FS_GENRES.find((genre) => genre.id === genreId)?.label || 'Genre';
+          setBanner(items.slice(0, 8));
+          setBrowseRows(
+            rowsFromItems(items, [label, `Encore plus · ${label}`, `Catalogue ${label}`], `/?tab=genres&genre=${genreId}`),
+          );
         } else {
           const section = getSectionById(activeTab);
-          if (!section.endpoint) return;
-          const data = await getCatalog(section.endpoint, page);
+          if (!section.endpoint) {
+            setBrowseRows([]);
+            setLoading(false);
+            return;
+          }
+          const genreRows = CATALOG_GENRE_ROWS[section.endpoint] || [];
+          const titles = CATALOG_ROW_TITLES[section.endpoint] || [section.label];
+          const seeAllTo = `/?tab=${section.id}`;
+          const [mainItems, ...genrePages] = await Promise.all([
+            getCatalogMany(section.endpoint, CATALOG_PAGES),
+            ...genreRows.map((genre) =>
+              getCatalogMany('genre', 3, genre.id).then((items) => ({
+                title: genre.label,
+                items:
+                  section.endpoint === 'series'
+                    ? items.filter((item) => item.type === 'tv')
+                    : section.endpoint === 'films'
+                      ? items.filter((item) => item.type === 'movie')
+                      : items,
+                seeAllTo: `/?tab=genres&genre=${genre.id}`,
+              })),
+            ),
+          ]);
           if (cancelled) return;
-          setItems(data.items);
-          setTotal(data.total);
-          setPerPage(data.perPage);
-          setBanner(data.items.slice(0, 8));
+          const seen = new Set(mainItems.map((item) => item.slug));
+          const extra = genrePages
+            .map((row) => ({
+              ...row,
+              items: row.items.filter((item) => item.slug && !seen.has(item.slug)),
+            }))
+            .filter((row) => row.items.length > 4);
+          setBanner(mainItems.slice(0, 8));
+          setBrowseRows([...rowsFromItems(mainItems, titles, seeAllTo), ...extra]);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur');
@@ -122,106 +195,49 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, activeGenre, page]);
+  }, [activeTab, activeGenre]);
 
-  const genres = FS_GENRES;
-  const activeGenreLabel = FS_GENRES.find((genre) => genre.id === (activeGenre || 'action'))?.label;
   const section = getSectionById(activeTab);
-  const catalogPages = Math.min(40, totalPagesFromCount(Math.max(total, items.length), perPage || 24));
-  const heroItems = banner.length ? banner : items.slice(0, 8);
+  const heroItems = banner.length ? banner : browseRows[0]?.items.slice(0, 8) || [];
 
   return (
-    <div className="home">
-      {loading && activeTab === 'accueil' ? (
+    <div className="home nf-browse">
+      {loading && !heroItems.length ? (
         <div className="skeleton-hero" />
       ) : heroItems.length ? (
         <HeroBanner items={heroItems} tag={section.label} />
       ) : null}
 
-      <div className="home-controls px-4 sm:px-6">
-        <SectionTabs active={activeTab} onChange={setTab} />
-        {activeTab === 'genres' && (
+      {activeTab === 'genres' && (
+        <div className="home-controls px-4 sm:px-6">
           <GenreBar
-            genres={genres}
+            genres={FS_GENRES}
             activeGenre={activeGenre || 'action'}
             onSelect={(id) => {
               if (!id) setTab('accueil');
               else setGenre(id);
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {error && <div className="page-error">{error}</div>}
 
-      {activeTab === 'accueil' && !loading && (
-        <>
-          {sections.map((row) => (
-            <MediaRow
-              key={row.title}
-              title={translateSection(row.title)}
-              items={row.items}
-            />
-          ))}
-        </>
-      )}
+      {activeTab === 'accueil' && <ContinueRow />}
 
-      {activeTab === 'genres' && (
-        <section className="section max-w-[1440px] mx-auto px-4 py-7 sm:px-6 md:py-10">
-          <div className="section-head">
-            <h2>{activeGenreLabel || 'Explorer par genre'}</h2>
-            <span className="section-desc">{items.length} titres</span>
-          </div>
-          {loading ? (
-            <SkeletonGrid />
-          ) : (
-            <>
-              <div className={GRID_CLASS}>
-                {items.map((item) => (
-                  <MediaCard key={`${item.id}-${item.slug}`} item={item} />
-                ))}
-              </div>
-              <Pagination
-                page={page}
-                totalPages={catalogPages}
-                onPageChange={setPage}
-                className="mt-8"
-              />
-            </>
-          )}
-        </section>
-      )}
-
-      {(activeTab === 'films' || activeTab === 'series' || activeTab === 'animation') && (
-        <section className="section max-w-[1440px] mx-auto px-4 py-7 sm:px-6 md:py-10">
-          <div className="section-head">
-            <h2>{section.label}</h2>
-            <span className="section-desc">{section.description}</span>
-          </div>
-          {loading ? (
-            <SkeletonGrid />
-          ) : (
-            <>
-              <div className={GRID_CLASS}>
-                {items.map((item) => (
-                  <MediaCard key={`${item.id}-${item.slug}`} item={item} />
-                ))}
-              </div>
-              <Pagination
-                page={page}
-                totalPages={catalogPages}
-                onPageChange={setPage}
-                className="mt-8"
-              />
-            </>
-          )}
-        </section>
-      )}
-
-      {loading && activeTab === 'accueil' && (
+      {loading && !browseRows.length ? (
         <section className="section max-w-[1440px] mx-auto px-4 py-7 sm:px-6">
-          <SkeletonGrid count={8} />
+          <SkeletonGrid />
         </section>
+      ) : (
+        browseRows.map((row, index) => (
+          <MediaRow
+            key={`${activeTab}-${row.title}-${index}`}
+            title={row.title}
+            items={row.items}
+            seeAllTo={row.seeAllTo}
+          />
+        ))
       )}
     </div>
   );

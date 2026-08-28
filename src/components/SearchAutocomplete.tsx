@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSearchSuggest } from '../hooks/useSearchSuggest';
-import { mediaPath, posterUrl, prefetchDetail } from '../lib/api';
+import { prefetchDetail, posterUrl } from '../lib/api';
+import { playPath } from '../lib/history';
 import type { MediaItem } from '../types';
 import { IconSearch } from './NavIcons';
 
@@ -12,6 +13,8 @@ interface Props {
   className?: string;
   variant?: 'navbar' | 'page';
   autoFocus?: boolean;
+  collapsed?: boolean;
+  onToggle?: () => void;
   onPick?: () => void;
   onSearch?: (query: string) => void;
 }
@@ -19,10 +22,12 @@ interface Props {
 export default function SearchAutocomplete({
   value,
   onChange,
-  placeholder = 'Rechercher un film, une série...',
+  placeholder = 'Titres, genres…',
   className = '',
   variant = 'navbar',
   autoFocus = false,
+  collapsed = false,
+  onToggle,
   onPick,
   onSearch,
 }: Props) {
@@ -54,7 +59,7 @@ export default function SearchAutocomplete({
   }
 
   function goSearch(term = value.trim()) {
-    if (!term) return;
+    if (term.length < 2) return;
     closePanel();
     onPick?.();
     if (onSearch) {
@@ -69,7 +74,7 @@ export default function SearchAutocomplete({
     onPick?.();
     if (item.slug && item.slug !== item.title) {
       prefetchDetail(item.slug);
-      navigate(mediaPath(item));
+      navigate(playPath(item.slug));
       return;
     }
     goSearch(item.title);
@@ -109,10 +114,26 @@ export default function SearchAutocomplete({
     }
   }
 
+  useEffect(() => {
+    if (!collapsed && variant === 'navbar') {
+      inputRef.current?.focus();
+    }
+  }, [collapsed, variant]);
+
   const formClass =
     variant === 'navbar'
       ? 'search-autocomplete__form search-autocomplete__form--navbar'
       : 'search-autocomplete__form search-autocomplete__form--page';
+
+  if (variant === 'navbar' && collapsed) {
+    return (
+      <div className={`search-autocomplete search-autocomplete--navbar ${className}`.trim()}>
+        <button type="button" className="nf-nav__icon" aria-label="Rechercher" onClick={onToggle}>
+          <IconSearch className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -196,17 +217,6 @@ export default function SearchAutocomplete({
               </span>
             </button>
           ))}
-
-          {hasQuery && !loading && (
-            <button
-              type="button"
-              className="search-suggest-all"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => goSearch()}
-            >
-              Voir tous les résultats pour « {value.trim()} »
-            </button>
-          )}
         </div>
       )}
     </div>

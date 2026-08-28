@@ -8,6 +8,8 @@ interface Props {
   loading?: boolean;
   isHls?: boolean;
   autoPlay?: boolean;
+  startAt?: number;
+  onProgress?: (position: number, duration: number) => void;
   onError?: () => void;
 }
 
@@ -22,15 +24,19 @@ export default function VideoPlayer({
   loading,
   isHls = false,
   autoPlay = true,
+  startAt = 0,
+  onProgress,
   onError,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const onErrorRef = useRef(onError);
+  const onProgressRef = useRef(onProgress);
   const [ready, setReady] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   onErrorRef.current = onError;
+  onProgressRef.current = onProgress;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -51,6 +57,13 @@ export default function VideoPlayer({
 
     const onReady = () => {
       setReady(true);
+      if (startAt > 8) {
+        try {
+          video.currentTime = startAt;
+        } catch {
+          /* ignore */
+        }
+      }
       if (autoPlay) tryPlay(video);
     };
 
@@ -101,7 +114,21 @@ export default function VideoPlayer({
       video.removeAttribute('src');
       video.load();
     };
-  }, [src, loading, isHls, autoPlay]);
+  }, [src, loading, isHls, autoPlay, startAt]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+    const emit = () => onProgressRef.current?.(video.currentTime, video.duration || 0);
+    video.addEventListener('timeupdate', emit);
+    video.addEventListener('pause', emit);
+    video.addEventListener('ended', emit);
+    return () => {
+      video.removeEventListener('timeupdate', emit);
+      video.removeEventListener('pause', emit);
+      video.removeEventListener('ended', emit);
+    };
+  }, [src]);
 
   useEffect(() => {
     setIframeReady(false);
