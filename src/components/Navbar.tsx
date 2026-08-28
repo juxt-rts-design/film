@@ -76,7 +76,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="nf-nav">
+      <header className={`nf-nav ${searching ? 'is-searching' : ''}`}>
         <div className="nf-nav__inner">
           <button
             type="button"

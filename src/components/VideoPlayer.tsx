@@ -31,16 +31,17 @@ function EmbedFrame({ src, title }: { src: string; title: string }) {
 
   useEffect(() => {
     const frame = frameRef.current;
-    if (!frame || !src) return;
-    frame.src = src;
     return () => stopIframe(frame);
   }, [src]);
 
+  if (!src) return null;
+
   return (
     <iframe
+      key={src}
       ref={frameRef}
       title={title}
-      src="about:blank"
+      src={src}
       allowFullScreen
       allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
       referrerPolicy="strict-origin-when-cross-origin"

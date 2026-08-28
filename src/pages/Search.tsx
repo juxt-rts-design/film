@@ -48,14 +48,16 @@ export default function Search() {
     <div className="search-page">
       {similar.length > 0 && (
         <p className="search-related">
-          <span>Autres titres à découvrir :</span>
-          {similar.map((item, index) => (
-            <span key={item.slug}>
-              {index > 0 ? <i aria-hidden>|</i> : null}
-              <button type="button" onClick={() => useSuggestion(item.title)}>
-                {item.title}
-              </button>
-            </span>
+          <span className="search-related__label">Autres titres à découvrir :</span>
+          {similar.map((item) => (
+            <button
+              key={item.slug}
+              type="button"
+              className="search-related__item"
+              onClick={() => useSuggestion(item.title)}
+            >
+              {item.title}
+            </button>
           ))}
         </p>
       )}
