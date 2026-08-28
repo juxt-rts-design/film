@@ -45,6 +45,10 @@ html, body, #root {
 }
 
 html {
+  scroll-padding-top: 72px;
+}
+
+html {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -83,6 +87,10 @@ button, input, select {
 
 main {
   flex: 1;
+}
+
+.app:not(.is-watch) > main {
+  padding-top: 72px;
 }
 
 /* ── Navbar ── */
@@ -2655,17 +2663,19 @@ main {
   position: fixed;
   inset: 0 0 auto;
   z-index: 80;
-  background: linear-gradient(180deg, #000 0%, rgba(4, 6, 5, 0.92) 70%, transparent);
-  border-bottom: 0;
+  min-height: 64px;
+  background: #000;
+  border-bottom: 1px solid rgba(34, 197, 94, 0.12);
 }
 
 .nf-nav__inner {
   max-width: 1440px;
   margin: 0 auto;
+  min-height: 64px;
   height: 64px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   padding: 0 16px;
 }
 
@@ -2711,15 +2721,18 @@ main {
 .nf-nav__links {
   display: none;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .nf-nav__link {
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 999px;
   color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .nf-nav__link:hover {
@@ -2762,6 +2775,9 @@ main {
   }
   .nf-nav__links {
     display: flex;
+  }
+  .nf-nav__history {
+    display: none;
   }
 }
 
@@ -2914,16 +2930,19 @@ main {
 .nf-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 20px 16px 80px;
 }
 
 .nf-page__head {
   margin-bottom: 22px;
+  padding-top: 8px;
 }
 
 .nf-page__head h1 {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
 }
 
 .nf-page__head p {

@@ -17,6 +17,38 @@ function tryPlay(video: HTMLVideoElement) {
   void video.play().catch(() => {});
 }
 
+function stopIframe(frame: HTMLIFrameElement | null) {
+  if (!frame) return;
+  try {
+    frame.src = 'about:blank';
+  } catch {
+    /* ignore */
+  }
+}
+
+function EmbedFrame({ src, title }: { src: string; title: string }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || !src) return;
+    frame.src = src;
+    return () => stopIframe(frame);
+  }, [src]);
+
+  return (
+    <iframe
+      ref={frameRef}
+      title={title}
+      src="about:blank"
+      allowFullScreen
+      allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
+      referrerPolicy="strict-origin-when-cross-origin"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-modals"
+    />
+  );
+}
+
 export default function VideoPlayer({
   src,
   embedUrl,
@@ -33,7 +65,6 @@ export default function VideoPlayer({
   const onErrorRef = useRef(onError);
   const onProgressRef = useRef(onProgress);
   const [ready, setReady] = useState(false);
-  const [iframeReady, setIframeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   onErrorRef.current = onError;
   onProgressRef.current = onProgress;
@@ -111,6 +142,7 @@ export default function VideoPlayer({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      video.pause();
       video.removeAttribute('src');
       video.load();
     };
@@ -130,13 +162,6 @@ export default function VideoPlayer({
     };
   }, [src]);
 
-  useEffect(() => {
-    setIframeReady(false);
-    if (!embedUrl) return;
-    const timer = window.setTimeout(() => setIframeReady(true), 2200);
-    return () => window.clearTimeout(timer);
-  }, [embedUrl]);
-
   if (loading) {
     return (
       <div className="player-empty player-loading-state">
@@ -148,21 +173,7 @@ export default function VideoPlayer({
   if (!src && embedUrl) {
     return (
       <div className="player-wrapper embed-player">
-        {!iframeReady && (
-          <div className="player-buffer">
-            <div className="spinner" />
-          </div>
-        )}
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          title={title}
-          allowFullScreen
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-modals"
-          onLoad={() => setIframeReady(true)}
-        />
+        <EmbedFrame src={embedUrl} title={title} />
       </div>
     );
   }

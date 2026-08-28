@@ -4,6 +4,7 @@ import { type ContentTab } from '../config/catalog';
 import MobileDrawer from './MobileDrawer';
 import SearchAutocomplete from './SearchAutocomplete';
 import { IconMenu, NavIcon, NavIconBox, type NavIconName } from './NavIcons';
+import { scrollToTop } from '../lib/scroll';
 
 const MAIN_LINKS = [
   { id: 'accueil', label: 'Accueil', to: '/', tab: 'accueil' as ContentTab },
@@ -54,7 +55,7 @@ export default function Navbar() {
             <IconMenu className="h-5 w-5" />
           </button>
 
-          <Link to="/" className="nf-nav__logo">
+          <Link to="/" className="nf-nav__logo" onClick={scrollToTop}>
             <img src="/logo.svg" alt="" />
             <span>
               <em>Juxt</em>
@@ -69,6 +70,7 @@ export default function Navbar() {
                 to={item.to}
                 className={`nf-nav__link ${isTab(item.tab) ? 'is-active' : ''}`}
                 aria-current={isTab(item.tab) ? 'page' : undefined}
+                onClick={scrollToTop}
               >
                 {item.label}
               </Link>
@@ -76,8 +78,16 @@ export default function Navbar() {
             <Link
               to="/liste"
               className={`nf-nav__link ${location.pathname === '/liste' ? 'is-active' : ''}`}
+              onClick={scrollToTop}
             >
               Ma liste
+            </Link>
+            <Link
+              to="/historique"
+              className={`nf-nav__link ${location.pathname === '/historique' ? 'is-active' : ''}`}
+              onClick={scrollToTop}
+            >
+              Historique
             </Link>
           </nav>
 
@@ -96,8 +106,10 @@ export default function Navbar() {
             />
             <Link
               to="/historique"
-              className={`nf-nav__icon ${location.pathname === '/historique' ? 'is-active' : ''}`}
+              className={`nf-nav__icon nf-nav__history ${location.pathname === '/historique' ? 'is-active' : ''}`}
               aria-label="Historique"
+              title="Historique"
+              onClick={scrollToTop}
             >
               <NavIcon name="historique" className="h-5 w-5" />
             </Link>
@@ -123,7 +135,10 @@ export default function Navbar() {
                     ? 'border-juxt-primary/45 bg-juxt-primary/14 text-juxt-primary'
                     : 'border-transparent text-juxt-text hover:bg-juxt-primary/8',
                 ].join(' ')}
-                onClick={() => setDrawerOpen(false)}
+                onClick={() => {
+                  setDrawerOpen(false);
+                  scrollToTop();
+                }}
               >
                 <NavIconBox name={icon} active={active} />
                 {item.label}

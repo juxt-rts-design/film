@@ -13,10 +13,10 @@ import { cachedFetch, readCache, writeCache } from './clientCache';
 import { enqueuePrefetch } from './prefetchQueue';
 
 const TTL = {
-  home: 5 * 60 * 1000,
-  catalog: 8 * 60 * 1000,
-  search: 8 * 60 * 1000,
-  detail: 20 * 60 * 1000,
+  home: 15 * 60 * 1000,
+  catalog: 20 * 60 * 1000,
+  search: 10 * 60 * 1000,
+  detail: 30 * 60 * 1000,
 };
 
 const prefetchKeys = new Set<string>();
@@ -409,9 +409,12 @@ export function withAutoplay(url: string) {
   if (!url) return '';
   try {
     const parsed = new URL(url);
+    parsed.searchParams.delete('muted');
     parsed.searchParams.set('autoplay', '1');
+    parsed.searchParams.set('autoPlay', '1');
     return parsed.toString();
   } catch {
+    if (/autoplay=/i.test(url)) return url;
     return url.includes('?') ? `${url}&autoplay=1` : `${url}?autoplay=1`;
   }
 }

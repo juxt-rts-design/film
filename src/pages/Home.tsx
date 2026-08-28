@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ContinueRow from '../components/ContinueRow';
 import GenreBar from '../components/GenreBar';
@@ -14,6 +14,7 @@ import {
   translateSection,
   type ContentTab,
 } from '../config/catalog';
+import { browseCacheKey, getBrowseCache, setBrowseCache, type BrowseRow } from '../lib/browseCache';
 import { getCatalogMany, getHome } from '../lib/api';
 import type { MediaItem } from '../types';
 
@@ -22,12 +23,6 @@ const GRID_CLASS =
 
 const CATALOG_PAGES = 8;
 const ROW_SIZE = 24;
-
-interface BrowseRow {
-  title: string;
-  items: MediaItem[];
-  seeAllTo?: string;
-}
 
 function SkeletonGrid({ count = 12 }: { count?: number }) {
   return (
@@ -58,7 +53,6 @@ export default function Home() {
   const [browseRows, setBrowseRows] = useState<BrowseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const lastTabRef = useRef(activeTab);
 
   const setTab = useCallback(
     (tab: ContentTab) => {
@@ -81,18 +75,20 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
+    const cacheKey = browseCacheKey(activeTab, activeTab === 'genres' ? activeGenre || 'action' : '');
+    const cached = getBrowseCache(cacheKey);
+    if (cached) {
+      setBanner(cached.banner);
+      setBrowseRows(cached.rows);
+      setLoading(false);
+    } else {
+      setBrowseRows([]);
+      setBanner([]);
+      setLoading(true);
+    }
+    setError(null);
 
     async function load() {
-      const sameTab = lastTabRef.current === activeTab;
-      if (!sameTab) {
-        setBrowseRows([]);
-        setBanner([]);
-        setLoading(true);
-      } else if (!browseRows.length) {
-        setLoading(true);
-      }
-      setError(null);
-
       try {
         if (activeTab === 'accueil') {
           const [home, films, series, animation] = await Promise.all([
@@ -113,11 +109,11 @@ export default function Home() {
             ...rowsFromItems(series, ['Séries populaires', 'Encore plus de séries'], '/?tab=series'),
             ...rowsFromItems(animation, ['Animation'], '/?tab=animation'),
           ].filter((row) => row.items.length > 0);
-
-          setBanner(home.banner.length ? home.banner : films.slice(0, 8));
+          const hero = home.banner.length ? home.banner : films.slice(0, 8);
+          setBanner(hero);
           setBrowseRows(rows);
+          setBrowseCache(cacheKey, hero, rows);
           setLoading(false);
-          lastTabRef.current = activeTab;
 
           const genreRows = await Promise.all(
             FS_GENRES.map((genre) =>
@@ -129,10 +125,13 @@ export default function Home() {
             ),
           );
           if (cancelled) return;
-          setBrowseRows((current) => [
-            ...current,
-            ...genreRows.filter((row) => row.items.length > 5),
-          ]);
+          setBrowseRows((current) => {
+            const seen = new Set(current.map((row) => row.title));
+            const extra = genreRows.filter((row) => row.items.length > 5 && !seen.has(row.title));
+            const next = [...current, ...extra];
+            setBrowseCache(cacheKey, hero, next);
+            return next;
+          });
           return;
         }
 
@@ -141,10 +140,15 @@ export default function Home() {
           const items = await getCatalogMany('genre', CATALOG_PAGES, genreId);
           if (cancelled) return;
           const label = FS_GENRES.find((genre) => genre.id === genreId)?.label || 'Genre';
-          setBanner(items.slice(0, 8));
-          setBrowseRows(
-            rowsFromItems(items, [label, `Encore plus · ${label}`, `Catalogue ${label}`], `/?tab=genres&genre=${genreId}`),
+          const rows = rowsFromItems(
+            items,
+            [label, `Encore plus · ${label}`, `Catalogue ${label}`],
+            `/?tab=genres&genre=${genreId}`,
           );
+          const hero = items.slice(0, 8);
+          setBanner(hero);
+          setBrowseRows(rows);
+          setBrowseCache(cacheKey, hero, rows);
         } else {
           const section = getSectionById(activeTab);
           if (!section.endpoint) {
@@ -178,16 +182,16 @@ export default function Home() {
               items: row.items.filter((item) => item.slug && !seen.has(item.slug)),
             }))
             .filter((row) => row.items.length > 4);
-          setBanner(mainItems.slice(0, 8));
-          setBrowseRows([...rowsFromItems(mainItems, titles, seeAllTo), ...extra]);
+          const rows = [...rowsFromItems(mainItems, titles, seeAllTo), ...extra];
+          const hero = mainItems.slice(0, 8);
+          setBanner(hero);
+          setBrowseRows(rows);
+          setBrowseCache(cacheKey, hero, rows);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur');
       } finally {
-        if (!cancelled) {
-          lastTabRef.current = activeTab;
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 

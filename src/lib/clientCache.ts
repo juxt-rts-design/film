@@ -2,7 +2,15 @@ type CacheEntry<T> = { value: T; expires: number };
 
 const memory = new Map<string, CacheEntry<unknown>>();
 const inflight = new Map<string, Promise<unknown>>();
-const SESSION_PREFIX = 'juxtcine:';
+const STORAGE_PREFIX = 'juxtcine:';
+
+function storage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase();
@@ -14,7 +22,8 @@ export function readCache<T>(key: string): T | null {
   if (hit && hit.expires > Date.now()) return hit.value as T;
 
   try {
-    const raw = sessionStorage.getItem(SESSION_PREFIX + k);
+    const store = storage();
+    const raw = store?.getItem(STORAGE_PREFIX + k);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CacheEntry<T>;
     if (parsed.expires <= Date.now()) return null;
@@ -30,7 +39,7 @@ export function writeCache<T>(key: string, value: T, ttlMs: number) {
   const entry: CacheEntry<T> = { value, expires: Date.now() + ttlMs };
   memory.set(k, entry);
   try {
-    sessionStorage.setItem(SESSION_PREFIX + k, JSON.stringify(entry));
+    storage()?.setItem(STORAGE_PREFIX + k, JSON.stringify(entry));
   } catch {
     /* quota */
   }

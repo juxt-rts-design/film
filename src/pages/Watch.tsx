@@ -185,12 +185,11 @@ export default function Watch() {
               Réessayer
             </button>
           </div>
-        ) : (
+        ) : embedUrl ? (
           <VideoPlayer
             src=""
             embedUrl={embedUrl}
             title={detail.title}
-            autoPlay
             startAt={startAt}
             onProgress={(position, duration) => {
               posRef.current = position;
@@ -206,6 +205,10 @@ export default function Watch() {
               });
             }}
           />
+        ) : (
+          <div className="player-empty player-loading-state">
+            <div className="spinner" />
+          </div>
         )}
       </div>
 

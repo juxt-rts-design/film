@@ -1,6 +1,7 @@
 import { useLocation, Routes, Route } from 'react-router-dom';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
+import ScrollToTop from './components/ScrollToTop';
 import { TitleModalProvider } from './context/TitleModalContext';
 import Home from './pages/Home';
 import Search from './pages/Search';
@@ -15,9 +16,10 @@ export default function App() {
 
   return (
     <TitleModalProvider>
+      <ScrollToTop />
       <div className={`app flex min-h-screen flex-col ${watch ? 'is-watch' : ''}`}>
         {watch ? null : <Navbar />}
-        <main className={watch ? 'flex-1' : 'flex-1 pt-[64px]'}>
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
