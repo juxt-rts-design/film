@@ -67,9 +67,16 @@ function num(value: unknown): number | null {
 async function request<T>(url: string, noCache = false): Promise<T> {
   const response = await fetch(url, {
     cache: noCache ? 'no-store' : undefined,
-    signal: AbortSignal.timeout(15000),
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(20000),
   });
-  const data = await response.json().catch(() => ({}));
+  const text = await response.text();
+  let data: unknown = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Réponse API invalide');
+  }
   if (!response.ok) {
     const message = str(asRecord(data).error || asRecord(data).message, `Erreur ${response.status}`);
     throw new Error(message);
@@ -159,6 +166,7 @@ export function getHome() {
         items: mapItems(section.items, title),
       };
     }).filter((section) => section.items.length > 0);
+    if (!sections.length) throw new Error('Accueil vide');
     return {
       banner: sections[0]?.items || [],
       sections,

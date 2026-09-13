@@ -14,7 +14,8 @@ import {
   translateSection,
   type ContentTab,
 } from '../config/catalog';
-import { browseCacheKey, getBrowseCache, setBrowseCache, type BrowseRow } from '../lib/browseCache';
+import { browseCacheKey, clearBrowseCache, getBrowseCache, setBrowseCache, type BrowseRow } from '../lib/browseCache';
+import { clearCache } from '../lib/clientCache';
 import { getCatalogMany, getHome } from '../lib/api';
 import type { MediaItem } from '../types';
 
@@ -91,8 +92,11 @@ export default function Home() {
     async function load() {
       try {
         if (activeTab === 'accueil') {
-          // Home first so Accueil shows even if catalog pages lag/fail.
-          const home = await getHome().catch(() => ({ banner: [] as MediaItem[], sections: [] }));
+          // Drop poisoned empty caches from the broken-proxy period.
+          clearCache('home');
+          clearBrowseCache('accueil');
+
+          const home = await getHome();
           if (cancelled) return;
 
           const rows: BrowseRow[] = home.sections
@@ -134,7 +138,11 @@ export default function Home() {
                   items,
                   seeAllTo: `/?tab=genres&genre=${genre.id}`,
                 }))
-                .catch(() => ({ title: genre.label, items: [] as MediaItem[], seeAllTo: `/?tab=genres&genre=${genre.id}` })),
+                .catch(() => ({
+                  title: genre.label,
+                  items: [] as MediaItem[],
+                  seeAllTo: `/?tab=genres&genre=${genre.id}`,
+                })),
             ),
           );
           if (cancelled) return;
