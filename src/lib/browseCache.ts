@@ -20,15 +20,24 @@ export function browseCacheKey(tab: string, genre = '') {
   return genre ? `${tab}:${genre}` : tab;
 }
 
+function isUseful(snap: BrowseSnapshot | null | undefined) {
+  if (!snap?.rows?.length) return false;
+  return snap.rows.some((row) => row.items?.length > 0) || (snap.banner?.length || 0) > 0;
+}
+
 export function getBrowseCache(key: string): BrowseSnapshot | null {
   const hit = memory.get(key);
-  if (hit && Date.now() - hit.savedAt < MAX_AGE_MS) return hit;
+  if (hit && Date.now() - hit.savedAt < MAX_AGE_MS && isUseful(hit)) return hit;
+  if (hit && !isUseful(hit)) memory.delete(key);
 
   try {
     const raw = localStorage.getItem(KEY_PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as BrowseSnapshot;
-    if (!parsed?.rows || Date.now() - parsed.savedAt >= MAX_AGE_MS) return null;
+    if (!parsed?.rows || Date.now() - parsed.savedAt >= MAX_AGE_MS || !isUseful(parsed)) {
+      localStorage.removeItem(KEY_PREFIX + key);
+      return null;
+    }
     memory.set(key, parsed);
     return parsed;
   } catch {
@@ -37,12 +46,30 @@ export function getBrowseCache(key: string): BrowseSnapshot | null {
 }
 
 export function setBrowseCache(key: string, banner: MediaItem[], rows: BrowseRow[]) {
+  if (!isUseful({ banner, rows, savedAt: Date.now() })) return;
   const snapshot: BrowseSnapshot = { banner, rows, savedAt: Date.now() };
   memory.set(key, snapshot);
   try {
     localStorage.setItem(KEY_PREFIX + key, JSON.stringify(snapshot));
   } catch {
     /* quota */
+  }
+}
+
+export function clearBrowseCache(prefix = '') {
+  for (const key of [...memory.keys()]) {
+    if (!prefix || key.startsWith(prefix)) memory.delete(key);
+  }
+  try {
+    const remove: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(KEY_PREFIX)) continue;
+      if (!prefix || key.slice(KEY_PREFIX.length).startsWith(prefix)) remove.push(key);
+    }
+    for (const key of remove) localStorage.removeItem(key);
+  } catch {
+    /* private mode */
   }
 }
 

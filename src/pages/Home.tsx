@@ -91,37 +91,50 @@ export default function Home() {
     async function load() {
       try {
         if (activeTab === 'accueil') {
-          const [home, films, series, animation] = await Promise.all([
-            getHome(),
-            getCatalogMany('films', 5),
-            getCatalogMany('series', 5),
-            getCatalogMany('animation', 3),
-          ]);
+          // Home first so Accueil shows even if catalog pages lag/fail.
+          const home = await getHome().catch(() => ({ banner: [] as MediaItem[], sections: [] }));
           if (cancelled) return;
 
-          const rows: BrowseRow[] = [
-            ...home.sections.map((section) => ({
+          const rows: BrowseRow[] = home.sections
+            .map((section) => ({
               title: translateSection(section.title),
               items: section.items,
               seeAllTo: homeSeeAllTo(section.title),
-            })),
-            ...rowsFromItems(films, ['Films populaires', 'Encore plus de films'], '/?tab=films'),
-            ...rowsFromItems(series, ['Séries populaires', 'Encore plus de séries'], '/?tab=series'),
-            ...rowsFromItems(animation, ['Animation'], '/?tab=animation'),
-          ].filter((row) => row.items.length > 0);
-          const hero = home.banner.length ? home.banner : films.slice(0, 8);
+            }))
+            .filter((row) => row.items.length > 0);
+          let hero = home.banner.length ? home.banner : rows[0]?.items.slice(0, 8) || [];
           setBanner(hero);
           setBrowseRows(rows);
           setBrowseCache(cacheKey, hero, rows);
           setLoading(false);
 
+          const [films, series, animation] = await Promise.all([
+            getCatalogMany('films', 4).catch(() => [] as MediaItem[]),
+            getCatalogMany('series', 4).catch(() => [] as MediaItem[]),
+            getCatalogMany('animation', 2).catch(() => [] as MediaItem[]),
+          ]);
+          if (cancelled) return;
+
+          const enriched: BrowseRow[] = [
+            ...rows,
+            ...rowsFromItems(films, ['Films populaires', 'Encore plus de films'], '/?tab=films'),
+            ...rowsFromItems(series, ['Séries populaires', 'Encore plus de séries'], '/?tab=series'),
+            ...rowsFromItems(animation, ['Animation'], '/?tab=animation'),
+          ].filter((row) => row.items.length > 0);
+          if (!hero.length) hero = films.slice(0, 8);
+          setBanner(hero);
+          setBrowseRows(enriched);
+          setBrowseCache(cacheKey, hero, enriched);
+
           const genreRows = await Promise.all(
-            FS_GENRES.map((genre) =>
-              getCatalogMany('genre', 2, genre.id).then((items) => ({
-                title: genre.label,
-                items,
-                seeAllTo: `/?tab=genres&genre=${genre.id}`,
-              })),
+            FS_GENRES.slice(0, 8).map((genre) =>
+              getCatalogMany('genre', 1, genre.id)
+                .then((items) => ({
+                  title: genre.label,
+                  items,
+                  seeAllTo: `/?tab=genres&genre=${genre.id}`,
+                }))
+                .catch(() => ({ title: genre.label, items: [] as MediaItem[], seeAllTo: `/?tab=genres&genre=${genre.id}` })),
             ),
           );
           if (cancelled) return;
