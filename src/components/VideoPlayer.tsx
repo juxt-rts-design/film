@@ -17,35 +17,25 @@ function tryPlay(video: HTMLVideoElement) {
   void video.play().catch(() => {});
 }
 
-function stopIframe(frame: HTMLIFrameElement | null) {
-  if (!frame) return;
-  try {
-    frame.src = 'about:blank';
-  } catch {
-    /* ignore */
-  }
-}
-
 function EmbedFrame({ src, title }: { src: string; title: string }) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    const frame = frameRef.current;
-    return () => stopIframe(frame);
-  }, [src]);
-
   if (!src) return null;
 
   return (
     <iframe
       key={src}
-      ref={frameRef}
       title={title}
       src={src}
       allowFullScreen
+      // Plein écran navigateur réel (sinon le lecteur reste dans le cadre 16:9)
       allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
       referrerPolicy="strict-origin-when-cross-origin"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-modals"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-modals allow-fullscreen"
+      // Compat navigateurs / lecteurs embed
+      {...{
+        webkitallowfullscreen: 'true',
+        mozallowfullscreen: 'true',
+        allowtransparency: 'true',
+      }}
     />
   );
 }

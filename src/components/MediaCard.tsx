@@ -1,15 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import type { MediaItem } from '../types';
 import { prefetchDetail, posterUrl } from '../lib/api';
+import { isMobileUi } from '../lib/mobile';
 import { playPath, resumeRatio } from '../lib/history';
 import { useHistory } from '../hooks/useHistory';
 import { useTitleModal } from '../context/TitleModalContext';
 import FavoriteButton from './FavoriteButton';
+import { IconPlay } from './NavIcons';
 
 interface Props {
   item: MediaItem;
   className?: string;
-  toWatch?: boolean;
 }
 
 function typeLabel(type?: string) {
@@ -30,6 +31,14 @@ export default function MediaCard({ item, className = '' }: Props) {
     navigate(playPath(item.slug));
   }
 
+  function onInfoClick() {
+    if (isMobileUi()) {
+      play();
+      return;
+    }
+    openInfo(item);
+  }
+
   return (
     <article className={`anime-card ${className}`.trim()}>
       <div className="anime-card-poster-wrap">
@@ -44,7 +53,9 @@ export default function MediaCard({ item, className = '' }: Props) {
           <div className="anime-card-poster">
             <img src={posterUrl(item.poster)} alt="" loading="lazy" decoding="async" />
             <div className="anime-card-overlay">
-              <span className="play-chip">▶</span>
+              <span className="play-chip">
+                <IconPlay className="play-chip__icon" />
+              </span>
             </div>
             {(item.quality || item.type) && (
               <span className="anime-card-badge">{item.quality || typeLabel(item.type)}</span>
@@ -59,15 +70,20 @@ export default function MediaCard({ item, className = '' }: Props) {
         </button>
 
         <div className="media-card__dock">
-          <button type="button" className="media-card__btn media-card__btn--play" onClick={play} aria-label="Lecture">
-            ▶
+          <button
+            type="button"
+            className="media-card__btn media-card__btn--play"
+            onClick={play}
+            aria-label="Lecture"
+          >
+            <IconPlay className="media-card__play-icon" />
           </button>
           <FavoriteButton item={item} className="fav-btn--plus media-card__btn" />
           <button
             type="button"
             className="media-card__btn media-card__btn--info"
             aria-label={`Infos ${item.title}`}
-            onClick={() => openInfo(item)}
+            onClick={onInfoClick}
           >
             i
           </button>

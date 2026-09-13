@@ -9,7 +9,8 @@ export default function MyList() {
   return (
     <div className="nf-page">
       <header className="nf-page__head">
-        <h1>Ma liste</h1>
+        <h1 className="nf-page__title-desktop">Ma liste</h1>
+        <h1 className="nf-page__title-mobile">Favoris</h1>
         <p>Tes favoris, enregistrés sur cet appareil.</p>
       </header>
       {favorites.length === 0 ? (

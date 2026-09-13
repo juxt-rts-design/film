@@ -77,6 +77,23 @@ export function IconSearch({ className }: IconProps) {
   );
 }
 
+/** Triangle lecture SVG — évite le rendu emoji ▶ sur iPhone. */
+export function IconPlay({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden fill="currentColor">
+      <path d="M8.25 5.8v12.4c0 .7.76 1.13 1.36.77l9.3-6.2a.9.9 0 0 0 0-1.54l-9.3-6.2a.9.9 0 0 0-1.36.77z" />
+    </svg>
+  );
+}
+
+export function IconHeart({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 20s-7-4.35-7-9.2A3.8 3.8 0 0 1 12 7.5a3.8 3.8 0 0 1 7 3.3C19 15.65 12 20 12 20z" />
+    </Svg>
+  );
+}
+
 export function IconMenu({ className }: IconProps) {
   return (
     <Svg className={className}>
@@ -111,7 +128,16 @@ export function IconHistory({ className }: IconProps) {
   );
 }
 
-export type NavIconName = 'accueil' | 'films' | 'series' | 'animation' | 'genres' | 'search' | 'liste' | 'historique';
+export type NavIconName =
+  | 'accueil'
+  | 'films'
+  | 'series'
+  | 'animation'
+  | 'genres'
+  | 'search'
+  | 'liste'
+  | 'historique'
+  | 'heart';
 
 const NAV_ICON_MAP = {
   accueil: IconHome,
@@ -122,6 +148,7 @@ const NAV_ICON_MAP = {
   search: IconSearch,
   liste: IconList,
   historique: IconHistory,
+  heart: IconHeart,
 } as const;
 
 export function NavIcon({ name, className = 'h-5 w-5' }: { name: NavIconName; className?: string }) {

@@ -12,6 +12,11 @@ export default function MovieDetail() {
     window.scrollTo(0, 0);
   }, [slug]);
 
+  function onClose() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  }
+
   return (
     <div className="title-modal-page">
       <TitleModal
@@ -22,7 +27,7 @@ export default function MovieDetail() {
           poster: cached?.poster || '',
           type: cached?.type || 'movie',
         }}
-        onClose={() => navigate('/')}
+        onClose={onClose}
       />
     </div>
   );

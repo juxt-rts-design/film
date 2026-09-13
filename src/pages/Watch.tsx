@@ -16,7 +16,12 @@ import {
   parseDuration,
   recordProgress,
 } from '../lib/history';
+import { isMobileUi } from '../lib/mobile';
 import type { MediaDetail } from '../types';
+import FavoriteButton from '../components/FavoriteButton';
+import MediaOverview from '../components/MediaOverview';
+
+const EPISODE_PAGE_SIZE = 60;
 
 export default function Watch() {
   const navigate = useNavigate();
@@ -33,6 +38,8 @@ export default function Watch() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState('');
   const [showEpisodes, setShowEpisodes] = useState(false);
+  const [visibleEpisodes, setVisibleEpisodes] = useState(EPISODE_PAGE_SIZE);
+  const [mobileWatch, setMobileWatch] = useState(() => isMobileUi());
 
   const isSeries = detail?.type === 'tv';
   const seasonNum = detail
@@ -57,10 +64,24 @@ export default function Watch() {
   const posRef = useRef(startAt);
   const currentIndex = episodeKeys.indexOf(episode);
   const episodeMeta = detail?.episodeInfo.find((item) => item.episode === episode);
+  const shownEpisodes = episodeKeys.slice(0, visibleEpisodes);
+  const remainingEpisodes = Math.max(0, episodeKeys.length - visibleEpisodes);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const sync = () => setMobileWatch(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
+
+  useEffect(() => {
+    setVisibleEpisodes(EPISODE_PAGE_SIZE);
+  }, [slug, version]);
 
   useEffect(() => {
     if (!slug) return;
@@ -147,6 +168,7 @@ export default function Watch() {
     next.set('ep', String(nextEp));
     next.set('ver', nextVer);
     if (nextPlayer) next.set('player', nextPlayer);
+    else next.delete('player');
     next.delete('t');
     setParams(next, { replace: true });
   }
@@ -176,7 +198,7 @@ export default function Watch() {
   }
 
   return (
-    <div className="nf-watch">
+    <div className={`nf-watch ${mobileWatch ? 'nf-watch--mobile' : ''}`}>
       <div className="nf-watch__stage">
         {streamError ? (
           <div className="player-empty player-empty--warn">
@@ -212,24 +234,60 @@ export default function Watch() {
         )}
       </div>
 
-      <header className="nf-watch__top">
-        <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
-          ←
-        </button>
-        <div className="nf-watch__heading">
-          <strong>{detail.title}</strong>
-          <span>
-            {isSeries
-              ? `S${seasonNum} · E${episode}${episodeMeta?.title ? ` · ${episodeMeta.title}` : ''}`
-              : [detail.quality, detail.year].filter(Boolean).join(' · ') || 'Film'}
-          </span>
-        </div>
-      </header>
+      {mobileWatch ? null : (
+        <header className="nf-watch__top">
+          <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
+            ←
+          </button>
+          <div className="nf-watch__heading">
+            <strong>{detail.title}</strong>
+            <span>
+              {isSeries
+                ? `S${seasonNum} · E${episode}${episodeMeta?.title ? ` · ${episodeMeta.title}` : ''}`
+                : [detail.quality, detail.year].filter(Boolean).join(' · ') || 'Film'}
+            </span>
+          </div>
+        </header>
+      )}
 
-      <footer className="nf-watch__bar">
-        <div className="nf-watch__dock">
-          {isSeries && (
-            <>
+      {mobileWatch ? (
+        <section className="nf-watch__mobile-body">
+          <div className="nf-watch__mobile-head">
+            <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
+              ←
+            </button>
+            <div className="nf-watch__mobile-title">
+              <strong>
+                {isSeries && episode
+                  ? `${detail.title} · Ép. ${episode}`
+                  : detail.title}
+              </strong>
+              <span>
+                {[
+                  isSeries && episodeMeta?.title ? episodeMeta.title : null,
+                  detail.year,
+                  detail.duration,
+                  detail.quality,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || (isSeries ? 'Série' : 'Film')}
+              </span>
+            </div>
+            <FavoriteButton
+              item={{
+                id: detail.id,
+                slug: detail.slug,
+                title: detail.title,
+                poster: detail.poster,
+                type: detail.type,
+                year: Number(detail.year) || null,
+              }}
+              className="fav-btn--lg"
+            />
+          </div>
+
+          {isSeries ? (
+            <div className="nf-watch__mobile-nav">
               <button
                 type="button"
                 className="nf-watch__ctl"
@@ -238,6 +296,12 @@ export default function Watch() {
               >
                 ‹ Préc.
               </button>
+              <div className="nf-watch__mobile-tile nf-watch__mobile-tile--center">
+                <span>Épisode</span>
+                <strong>
+                  {episode} / {episodeKeys.length || '—'}
+                </strong>
+              </div>
               <button
                 type="button"
                 className="nf-watch__ctl"
@@ -246,83 +310,195 @@ export default function Watch() {
               >
                 Suiv. ›
               </button>
+            </div>
+          ) : null}
+
+          {detail.versions.length > 1 ? (
+            <div className="nf-watch__version-chips" role="group" aria-label="Version">
+              {detail.versions.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={`nf-watch__version-chip ${version === item.value ? 'is-active' : ''}`}
+                  onClick={() => updateParams(isSeries ? episodeKeys[0] || 1 : episode, item.value, '')}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {players.length > 0 ? (
+            <div className="nf-watch__mobile-selects">
+              <label className="nf-watch__mobile-tile">
+                <span>Lecteur</span>
+                <select value={player} onChange={(e) => updateParams(episode, version, e.target.value)}>
+                  {players.map((item, index) => (
+                    <option key={item.key} value={item.key}>
+                      Lecteur {index + 1}
+                      {players.length > 1 ? ` / ${players.length}` : ''} · {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
+
+          {players.length > 1 ? (
+            <p className="nf-watch__player-hint">
+              Pub insistante ou vidéo indisponible ?{' '}
               <button
                 type="button"
-                className={`nf-watch__ctl ${showEpisodes ? 'is-on' : ''}`}
-                onClick={() => setShowEpisodes((open) => !open)}
+                className="nf-watch__player-cycle"
+                onClick={() => {
+                  const idx = players.findIndex((item) => item.key === player);
+                  const next = players[(idx + 1) % players.length];
+                  if (next) updateParams(episode, version, next.key);
+                }}
               >
-                Épisodes
+                Changez de lecteur ({Math.max(1, players.findIndex((item) => item.key === player) + 1)}/
+                {players.length})
               </button>
-            </>
-          )}
-          {players.length > 0 && (
-            <label className="nf-watch__select">
-              <span className="sr-only">Lecteur</span>
-              <select value={player} onChange={(e) => updateParams(episode, version, e.target.value)}>
-                {players.map((item) => (
-                  <option key={item.key} value={item.key}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {detail.versions.length > 0 && (
-            <label className="nf-watch__select">
-              <span className="sr-only">Version</span>
-              <select
-                value={version}
-                onChange={(e) => updateParams(isSeries ? episodeKeys[0] || 1 : episode, e.target.value, '')}
-              >
-                {detail.versions.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-      </footer>
+            </p>
+          ) : null}
 
-      {isSeries && showEpisodes && (
-        <aside className="nf-watch__panel">
-          <div className="nf-watch__panel-head">
-            <button type="button" onClick={() => setShowEpisodes(false)}>
-              ← Saison {seasonNum}
-            </button>
-          </div>
-          <ul>
-            {episodeKeys.map((ep) => {
-              const info = detail.episodeInfo.find((entry) => entry.episode === ep);
-              const active = ep === episode;
-              return (
-                <li key={ep}>
+          {isSeries && episodeKeys.length > 0 ? (
+            <div className="nf-watch__eps">
+              <h2 className="nf-watch__eps-title">Épisodes — {episodeKeys.length}</h2>
+              <div className="nf-watch__eps-grid">
+                {shownEpisodes.map((ep) => {
+                  const info = detail.episodeInfo.find((entry) => entry.episode === ep);
+                  const active = ep === episode;
+                  return (
+                    <button
+                      key={ep}
+                      type="button"
+                      className={`nf-watch__eps-chip ${active ? 'is-active' : ''}`}
+                      onClick={() => updateParams(ep, version, player)}
+                      aria-current={active ? 'true' : undefined}
+                      aria-label={info?.title ? `Épisode ${ep} — ${info.title}` : `Épisode ${ep}`}
+                      title={info?.title || `Épisode ${ep}`}
+                    >
+                      <strong>{ep}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+              {remainingEpisodes > 0 ? (
+                <button
+                  type="button"
+                  className="nf-watch__eps-more"
+                  onClick={() => setVisibleEpisodes((n) => n + EPISODE_PAGE_SIZE)}
+                >
+                  Afficher {Math.min(remainingEpisodes, EPISODE_PAGE_SIZE)} épisodes de plus
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <MediaOverview detail={detail} />
+        </section>
+      ) : (
+        <>
+          <footer className="nf-watch__bar">
+            <div className="nf-watch__dock">
+              {isSeries && (
+                <>
                   <button
                     type="button"
-                    className={`nf-watch__ep ${active ? 'is-active' : ''}`}
-                    onClick={() => {
-                      updateParams(ep, version, player);
-                      setShowEpisodes(false);
-                    }}
+                    className="nf-watch__ctl"
+                    disabled={currentIndex <= 0}
+                    onClick={() => updateParams(episodeKeys[currentIndex - 1], version, player)}
                   >
-                    <span className="nf-watch__ep-num">{ep}</span>
-                    <span className="nf-watch__ep-body">
-                      <strong>
-                        {info?.title || `Épisode ${ep}`}
-                        {active ? ' · Lecture en cours' : ''}
-                      </strong>
-                      {active && info?.synopsis ? <small>{info.synopsis}</small> : null}
-                    </span>
-                    {active && (info?.poster || detail.poster) ? (
-                      <img src={posterUrl(info?.poster || detail.poster)} alt="" />
-                    ) : null}
+                    ‹ Préc.
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        </aside>
+                  <button
+                    type="button"
+                    className="nf-watch__ctl"
+                    disabled={currentIndex < 0 || currentIndex >= episodeKeys.length - 1}
+                    onClick={() => updateParams(episodeKeys[currentIndex + 1], version, player)}
+                  >
+                    Suiv. ›
+                  </button>
+                  <button
+                    type="button"
+                    className={`nf-watch__ctl ${showEpisodes ? 'is-on' : ''}`}
+                    onClick={() => setShowEpisodes((open) => !open)}
+                  >
+                    Épisodes
+                  </button>
+                </>
+              )}
+              {players.length > 0 && (
+                <label className="nf-watch__select">
+                  <span className="sr-only">Lecteur</span>
+                  <select value={player} onChange={(e) => updateParams(episode, version, e.target.value)}>
+                    {players.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {detail.versions.length > 0 && (
+                <label className="nf-watch__select">
+                  <span className="sr-only">Version</span>
+                  <select
+                    value={version}
+                    onChange={(e) => updateParams(isSeries ? episodeKeys[0] || 1 : episode, e.target.value, '')}
+                  >
+                    {detail.versions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          </footer>
+
+          {isSeries && showEpisodes && (
+            <aside className="nf-watch__panel">
+              <div className="nf-watch__panel-head">
+                <button type="button" onClick={() => setShowEpisodes(false)}>
+                  ← Saison {seasonNum}
+                </button>
+              </div>
+              <ul>
+                {episodeKeys.map((ep) => {
+                  const info = detail.episodeInfo.find((entry) => entry.episode === ep);
+                  const active = ep === episode;
+                  return (
+                    <li key={ep}>
+                      <button
+                        type="button"
+                        className={`nf-watch__ep ${active ? 'is-active' : ''}`}
+                        onClick={() => {
+                          updateParams(ep, version, player);
+                          setShowEpisodes(false);
+                        }}
+                      >
+                        <span className="nf-watch__ep-num">{ep}</span>
+                        <span className="nf-watch__ep-body">
+                          <strong>
+                            {info?.title || `Épisode ${ep}`}
+                            {active ? ' · Lecture en cours' : ''}
+                          </strong>
+                          {active && info?.synopsis ? <small>{info.synopsis}</small> : null}
+                        </span>
+                        {active && (info?.poster || detail.poster) ? (
+                          <img src={posterUrl(info?.poster || detail.poster)} alt="" />
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
+          )}
+        </>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { getCachedDetail, getDetail, listEpisodeNumbers, parseSeasonNumber, post
 import { getHistory, isResumable, resumePath } from '../lib/history';
 import type { MediaDetail } from '../types';
 import FavoriteButton from './FavoriteButton';
+import { IconPlay } from './NavIcons';
 
 interface Props {
   item: TitleRef;
@@ -23,12 +24,14 @@ export default function TitleModal({ item, onClose }: Props) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('nf-modal-open');
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
+      document.body.classList.remove('nf-modal-open');
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
@@ -50,7 +53,7 @@ export default function TitleModal({ item, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [item.slug]);
+  }, [item.slug, item.title]);
 
   const version = detail?.versions[0]?.value || 'vf';
   const episodeKeys = useMemo(
@@ -92,7 +95,7 @@ export default function TitleModal({ item, onClose }: Props) {
             <h1>{title}</h1>
             <div className="nf-modal__actions">
               <button type="button" className="nf-btn nf-btn--play" onClick={() => play()}>
-                ▶ {resumable ? 'Reprendre' : 'Lecture'}
+                <IconPlay className="nf-btn__play-icon" /> {resumable ? 'Reprendre' : 'Lecture'}
               </button>
               {detail ? (
                 <FavoriteButton
@@ -183,7 +186,9 @@ export default function TitleModal({ item, onClose }: Props) {
                             <span className="nf-ep__num">{ep}</span>
                             <span className="nf-ep__thumb">
                               <img src={posterUrl(info?.poster || detail.poster)} alt="" />
-                              <span className="nf-ep__play">▶</span>
+                              <span className="nf-ep__play">
+                                <IconPlay className="nf-ep__play-icon" />
+                              </span>
                             </span>
                             <span className="nf-ep__text">
                               <strong>{info?.title || `Épisode ${ep}`}</strong>
