@@ -336,22 +336,26 @@ async function handleDownload(req, res) {
   return true;
 }
 
-export function mediaProxyPlugin() {
-  const middleware = async (req, res, next) => {
-    const handled =
-      (await handleProxy(req, res)) ||
-      (await handleStreamProbe(req, res)) ||
-      (await handleDownload(req, res));
-    if (!handled) next();
-  };
+/**
+ * Middleware partagé : utilisé par Vite (dev/preview) et par le service
+ * autonome de production (`server/standalone.js`).
+ */
+export async function mediaMiddleware(req, res, next) {
+  const handled =
+    (await handleProxy(req, res)) ||
+    (await handleStreamProbe(req, res)) ||
+    (await handleDownload(req, res));
+  if (!handled) next();
+}
 
+export function mediaProxyPlugin() {
   return {
     name: 'media-proxy',
     configureServer(server) {
-      server.middlewares.use(middleware);
+      server.middlewares.use(mediaMiddleware);
     },
     configurePreviewServer(server) {
-      server.middlewares.use(middleware);
+      server.middlewares.use(mediaMiddleware);
     },
   };
 }

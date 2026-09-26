@@ -1,0 +1,18 @@
+[Unit]
+Description=Juxt-Cine - service media (/proxy, /stream, /download)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/film
+Environment=MEDIA_HOST=127.0.0.1
+Environment=MEDIA_PORT=5175
+ExecStart=/usr/bin/node server/standalone.js
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
