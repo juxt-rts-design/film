@@ -4583,3 +4583,101 @@ main {
     min-height: 100dvh;
   }
 }
+
+/* ── Téléchargement (épisode / film) ── */
+.dl-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.dl-btn--block {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.dl-btn--compact {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.dl-btn__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.dl-btn:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.dl-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.dl-btn.is-started {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.dl-btn.is-error {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+}
+
+.dl-note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #7a9485;
+}
+
+.dl-note--error {
+  color: #fca5a5;
+}
+
+/* Liste d'épisodes (desktop) : bouton à côté de la ligne */
+.nf-watch__ep-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nf-watch__ep-row .nf-watch__ep {
+  flex: 1;
+  min-width: 0;
+}
+
+.nf-watch__ep-row .dl-btn--compact {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+}
+
+@media (max-width: 767px) {
+  .dl-btn--block {
+    min-height: 52px;
+  }
+}

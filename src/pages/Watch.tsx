@@ -17,7 +17,9 @@ import {
   recordProgress,
 } from '../lib/history';
 import { isMobileUi } from '../lib/mobile';
+import { downloadFileName } from '../lib/downloads';
 import type { MediaDetail } from '../types';
+import DownloadButton from '../components/DownloadButton';
 import FavoriteButton from '../components/FavoriteButton';
 import MediaOverview from '../components/MediaOverview';
 
@@ -66,6 +68,30 @@ export default function Watch() {
   const episodeMeta = detail?.episodeInfo.find((item) => item.episode === episode);
   const shownEpisodes = episodeKeys.slice(0, visibleEpisodes);
   const remainingEpisodes = Math.max(0, episodeKeys.length - visibleEpisodes);
+  const versionLabel = detail?.versions.find((item) => item.value === version)?.label || '';
+
+  /** Embeds candidats pour un épisode, lecteur courant en tête. */
+  function embedsFor(ep: number) {
+    if (!detail) return [];
+    const entries = listPlayers(detail, version, ep);
+    return [
+      ...entries.filter((item) => item.key === player),
+      ...entries.filter((item) => item.key !== player),
+    ]
+      .map((item) => item.url)
+      .filter(Boolean);
+  }
+
+  function fileNameFor(ep: number) {
+    return downloadFileName({
+      title: detail?.title || 'Video',
+      isSeries: detail?.type === 'tv',
+      season: seasonNum,
+      episode: ep,
+      version: versionLabel,
+      year: detail?.year,
+    });
+  }
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)');
@@ -362,6 +388,12 @@ export default function Watch() {
             </p>
           ) : null}
 
+          <DownloadButton
+            embeds={embedsFor(episode)}
+            fileName={fileNameFor(episode)}
+            label={isSeries ? `Télécharger l’épisode ${episode}` : 'Télécharger le film'}
+          />
+
           {isSeries && episodeKeys.length > 0 ? (
             <div className="nf-watch__eps">
               <h2 className="nf-watch__eps-title">Épisodes — {episodeKeys.length}</h2>
@@ -456,6 +488,12 @@ export default function Watch() {
                   </select>
                 </label>
               )}
+              <DownloadButton
+                compact
+                embeds={embedsFor(episode)}
+                fileName={fileNameFor(episode)}
+                label={isSeries ? `Télécharger l’épisode ${episode}` : 'Télécharger le film'}
+              />
             </div>
           </footer>
 
@@ -471,7 +509,7 @@ export default function Watch() {
                   const info = detail.episodeInfo.find((entry) => entry.episode === ep);
                   const active = ep === episode;
                   return (
-                    <li key={ep}>
+                    <li key={ep} className="nf-watch__ep-row">
                       <button
                         type="button"
                         className={`nf-watch__ep ${active ? 'is-active' : ''}`}
@@ -492,6 +530,12 @@ export default function Watch() {
                           <img src={posterUrl(info?.poster || detail.poster)} alt="" />
                         ) : null}
                       </button>
+                      <DownloadButton
+                        compact
+                        embeds={embedsFor(ep)}
+                        fileName={fileNameFor(ep)}
+                        label={`Télécharger l’épisode ${ep}`}
+                      />
                     </li>
                   );
                 })}

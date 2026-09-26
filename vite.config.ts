@@ -55,11 +55,16 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // Le SW ne doit jamais répondre index.html sur ces routes (flux & téléchargements).
+        navigateFallbackDenylist: [/^\/api\//, /^\/proxy/, /^\/stream/, /^\/download/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/api/') ||
+              url.pathname.startsWith('/proxy') ||
+              url.pathname.startsWith('/stream') ||
+              url.pathname.startsWith('/download'),
             handler: 'NetworkOnly',
           },
           {
