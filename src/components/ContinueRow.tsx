@@ -47,6 +47,7 @@ export default function ContinueRow() {
               <Link
                 to={resumePath(entry)}
                 className="anime-card"
+                onPointerDown={() => prefetchDetail(entry.slug)}
                 onMouseEnter={() => prefetchDetail(entry.slug)}
               >
                 <div className="anime-card-poster">

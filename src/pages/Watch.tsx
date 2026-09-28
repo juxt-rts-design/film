@@ -22,8 +22,25 @@ import type { MediaDetail } from '../types';
 import DownloadButton from '../components/DownloadButton';
 import FavoriteButton from '../components/FavoriteButton';
 import MediaOverview from '../components/MediaOverview';
+import { IconBack } from '../components/NavIcons';
 
 const EPISODE_PAGE_SIZE = 60;
+
+function embedForDetail(
+  detail: MediaDetail,
+  requestedEp: number,
+  requestedVer: string,
+  requestedPlayer: string,
+) {
+  const version = requestedVer || detail.versions[0]?.value || 'vf';
+  const keys = listEpisodeNumbers(detail, version);
+  const episode = keys.includes(requestedEp) ? requestedEp : keys[0] || 1;
+  const players = listPlayers(detail, version, episode);
+  const player = players.some((item) => item.key === requestedPlayer)
+    ? requestedPlayer
+    : players[0]?.key || '';
+  return pickEmbed(detail, version, episode, player);
+}
 
 export default function Watch() {
   const navigate = useNavigate();
@@ -38,7 +55,10 @@ export default function Watch() {
   const [pageLoading, setPageLoading] = useState(!getCachedDetail(slug));
   const [error, setError] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [embedUrl, setEmbedUrl] = useState('');
+  const [embedUrl, setEmbedUrl] = useState(() => {
+    const cached = getCachedDetail(slug);
+    return cached ? embedForDetail(cached, requestedEp, requestedVer, requestedPlayer) : '';
+  });
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [visibleEpisodes, setVisibleEpisodes] = useState(EPISODE_PAGE_SIZE);
   const [mobileWatch, setMobileWatch] = useState(() => isMobileUi());
@@ -112,7 +132,10 @@ export default function Watch() {
   useEffect(() => {
     if (!slug) return;
     const cached = getCachedDetail(slug);
-    if (cached) setDetail(cached);
+    setDetail(cached);
+    setEmbedUrl(cached ? embedForDetail(cached, requestedEp, requestedVer, requestedPlayer) : '');
+    setError(null);
+    setStreamError(null);
 
     let cancelled = false;
     if (!cached) setPageLoading(true);
@@ -136,7 +159,7 @@ export default function Watch() {
   const loadStream = useCallback(() => {
     if (!detail) return;
     const embed = pickEmbed(detail, version, episode, player);
-    setEmbedUrl(embed);
+    setEmbedUrl((prev) => (prev === embed ? prev : embed));
     setStreamError(embed ? null : 'Aucun lecteur pour cet épisode.');
   }, [detail, version, episode, player]);
 
@@ -215,8 +238,8 @@ export default function Watch() {
   if (error || !detail) {
     return (
       <div className="nf-watch nf-watch--error">
-        <button type="button" className="nf-watch__back" onClick={goBack}>
-          ←
+        <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
+          <IconBack className="nf-watch__back-icon" />
         </button>
         <p className="page-error">{error || 'Introuvable'}</p>
       </div>
@@ -238,6 +261,7 @@ export default function Watch() {
             src=""
             embedUrl={embedUrl}
             title={detail.title}
+            autoPlay
             startAt={startAt}
             onProgress={(position, duration) => {
               posRef.current = position;
@@ -265,7 +289,7 @@ export default function Watch() {
             onClick={goBack}
             aria-label="Retour"
           >
-            ←
+            <IconBack className="nf-watch__back-icon" />
           </button>
         ) : null}
       </div>
@@ -273,7 +297,7 @@ export default function Watch() {
       {mobileWatch ? null : (
         <header className="nf-watch__top">
           <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
-            ←
+            <IconBack className="nf-watch__back-icon" />
           </button>
           <div className="nf-watch__heading">
             <strong>{detail.title}</strong>
@@ -327,7 +351,7 @@ export default function Watch() {
                 disabled={currentIndex <= 0}
                 onClick={() => updateParams(episodeKeys[currentIndex - 1], version, player)}
               >
-                ‹ Préc.
+                Préc.
               </button>
               <div className="nf-watch__mobile-tile nf-watch__mobile-tile--center">
                 <span>Épisode</span>
@@ -341,7 +365,7 @@ export default function Watch() {
                 disabled={currentIndex < 0 || currentIndex >= episodeKeys.length - 1}
                 onClick={() => updateParams(episodeKeys[currentIndex + 1], version, player)}
               >
-                Suiv. ›
+                Suiv.
               </button>
             </div>
           ) : null}
@@ -449,7 +473,7 @@ export default function Watch() {
                     disabled={currentIndex <= 0}
                     onClick={() => updateParams(episodeKeys[currentIndex - 1], version, player)}
                   >
-                    ‹ Préc.
+                    Préc.
                   </button>
                   <button
                     type="button"
@@ -457,7 +481,7 @@ export default function Watch() {
                     disabled={currentIndex < 0 || currentIndex >= episodeKeys.length - 1}
                     onClick={() => updateParams(episodeKeys[currentIndex + 1], version, player)}
                   >
-                    Suiv. ›
+                    Suiv.
                   </button>
                   <button
                     type="button"
@@ -508,7 +532,7 @@ export default function Watch() {
             <aside className="nf-watch__panel">
               <div className="nf-watch__panel-head">
                 <button type="button" onClick={() => setShowEpisodes(false)}>
-                  ← Saison {seasonNum}
+                  Saison {seasonNum}
                 </button>
               </div>
               <ul>

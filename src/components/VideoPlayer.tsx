@@ -13,38 +13,62 @@ interface Props {
   onError?: () => void;
 }
 
+function isIos() {
+  if (typeof navigator === 'undefined') return false;
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
 function tryPlay(video: HTMLVideoElement) {
   void video.play().catch(() => {});
 }
 
-/** Sort d’un plein écran déclenché tout seul au lancement — le plein écran manuel reste possible après. */
-function useRejectAutoFullscreen(active: boolean) {
-  useEffect(() => {
-    if (!active) return;
-    const started = Date.now();
-    const exitAuto = () => {
-      if (Date.now() - started > 2000) return;
-      if (document.fullscreenElement) {
-        void document.exitFullscreen?.().catch(() => {});
-      }
-      const doc = document as Document & { webkitExitFullscreen?: () => void };
-      doc.webkitExitFullscreen?.();
-    };
-    document.addEventListener('fullscreenchange', exitAuto);
-    document.addEventListener('webkitfullscreenchange', exitAuto);
-    return () => {
-      document.removeEventListener('fullscreenchange', exitAuto);
-      document.removeEventListener('webkitfullscreenchange', exitAuto);
-    };
-  }, [active]);
+function nudgeEmbedPlay(frame: HTMLIFrameElement | null) {
+  const win = frame?.contentWindow;
+  if (!win) return;
+  const payloads: Array<string | Record<string, unknown>> = [
+    { method: 'play' },
+    { event: 'command', func: 'playVideo', args: [] },
+    { event: 'command', func: 'play' },
+    '{"method":"play"}',
+    '{"event":"command","func":"playVideo","args":""}',
+    'play',
+  ];
+  for (const payload of payloads) {
+    try {
+      win.postMessage(payload, '*');
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function EmbedFrame({ src, title }: { src: string; title: string }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || !src) return;
+
+    const kick = () => nudgeEmbedPlay(frame);
+    frame.addEventListener('load', kick);
+    const start = window.setTimeout(kick, 600);
+    const pulse = window.setInterval(kick, 500);
+    const stop = window.setTimeout(() => window.clearInterval(pulse), 4000);
+
+    return () => {
+      frame.removeEventListener('load', kick);
+      window.clearTimeout(start);
+      window.clearInterval(pulse);
+      window.clearTimeout(stop);
+    };
+  }, [src]);
+
   if (!src) return null;
 
   return (
     <iframe
       key={src}
+      ref={frameRef}
       title={title}
       src={src}
       allowFullScreen
@@ -79,7 +103,6 @@ export default function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   onErrorRef.current = onError;
   onProgressRef.current = onProgress;
-  useRejectAutoFullscreen(Boolean(src || embedUrl) && !loading);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -110,8 +133,13 @@ export default function VideoPlayer({
       if (autoPlay) tryPlay(video);
     };
 
-    video.setAttribute('playsinline', 'true');
-    video.setAttribute('webkit-playsinline', 'true');
+    if (!isIos()) {
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+    } else {
+      video.removeAttribute('playsinline');
+      video.removeAttribute('webkit-playsinline');
+    }
 
     const useHls = isHls || src.includes('.m3u8');
 
@@ -221,8 +249,8 @@ export default function VideoPlayer({
         title={title}
         controls
         autoPlay={autoPlay}
-        muted={autoPlay}
-        playsInline
+        muted={autoPlay && !isIos()}
+        playsInline={!isIos()}
         controlsList="nodownload noremoteplayback"
         className={`native-player ${ready ? 'ready' : ''}`}
       />

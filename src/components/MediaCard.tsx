@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import type { MouseEvent } from 'react';
 import type { MediaItem } from '../types';
 import { prefetchDetail, posterUrl } from '../lib/api';
 import { isMobileUi } from '../lib/mobile';
@@ -20,34 +21,32 @@ function typeLabel(type?: string) {
 }
 
 export default function MediaCard({ item, className = '' }: Props) {
-  const navigate = useNavigate();
   const { openInfo } = useTitleModal();
   const historyList = useHistory();
   const history = historyList.find((entry) => entry.slug === item.slug);
   const ratio = history ? resumeRatio(history) : 0;
+  const to = playPath(item.slug);
 
-  function play() {
+  function warm() {
     prefetchDetail(item.slug);
-    navigate(playPath(item.slug));
   }
 
-  function onInfoClick() {
-    if (isMobileUi()) {
-      play();
-      return;
-    }
+  function onInfoClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isMobileUi()) return;
     openInfo(item);
   }
 
   return (
     <article className={`anime-card ${className}`.trim()}>
       <div className="anime-card-poster-wrap">
-        <button
-          type="button"
+        <Link
+          to={to}
           className="anime-card-hit"
-          onClick={play}
-          onMouseEnter={() => prefetchDetail(item.slug)}
-          onFocus={() => prefetchDetail(item.slug)}
+          onPointerDown={warm}
+          onMouseEnter={warm}
+          onFocus={warm}
           aria-label={`Lire ${item.title}`}
         >
           <div className="anime-card-poster">
@@ -67,17 +66,17 @@ export default function MediaCard({ item, className = '' }: Props) {
               </span>
             ) : null}
           </div>
-        </button>
+        </Link>
 
         <div className="media-card__dock">
-          <button
-            type="button"
+          <Link
+            to={to}
             className="media-card__btn media-card__btn--play"
-            onClick={play}
+            onPointerDown={warm}
             aria-label="Lecture"
           >
             <IconPlay className="media-card__play-icon" />
-          </button>
+          </Link>
           <FavoriteButton item={item} className="fav-btn--plus media-card__btn" />
           <button
             type="button"
@@ -90,12 +89,12 @@ export default function MediaCard({ item, className = '' }: Props) {
         </div>
       </div>
 
-      <div className="anime-card-info">
+      <Link to={to} className="anime-card-info" onPointerDown={warm} onMouseEnter={warm}>
         <h3>{item.title}</h3>
         <span className="anime-card-year">
           {[typeLabel(item.type), item.year].filter(Boolean).join(' · ')}
         </span>
-      </div>
+      </Link>
     </article>
   );
 }

@@ -10,7 +10,6 @@ import type {
   SearchPage,
 } from '../types';
 import { cachedFetch, readCache, writeCache } from './clientCache';
-import { enqueuePrefetch } from './prefetchQueue';
 
 const TTL = {
   home: 15 * 60 * 1000,
@@ -18,8 +17,6 @@ const TTL = {
   search: 10 * 60 * 1000,
   detail: 30 * 60 * 1000,
 };
-
-const prefetchKeys = new Set<string>();
 
 type Json = Record<string, unknown>;
 
@@ -424,20 +421,23 @@ export function pickEmbed(detail: MediaDetail, version: string, episode: number,
 
 export function withAutoplay(url: string) {
   if (!url) return '';
+  const ios =
+    typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
   try {
     const parsed = new URL(url);
     parsed.searchParams.delete('muted');
-    parsed.searchParams.delete('fullscreen');
-    parsed.searchParams.delete('fs');
+    parsed.searchParams.delete('mute');
     parsed.searchParams.set('autoplay', '1');
     parsed.searchParams.set('autoPlay', '1');
-    parsed.searchParams.set('playsinline', '1');
-    parsed.searchParams.set('webkit-playsinline', '1');
+    if (ios) {
+      parsed.searchParams.set('fullscreen', '1');
+      parsed.searchParams.set('fs', '1');
+    }
     return parsed.toString();
   } catch {
     if (/autoplay=/i.test(url)) return url;
-    const join = url.includes('?') ? '&' : '?';
-    return `${url}${join}autoplay=1&playsinline=1`;
+    const extra = ios ? '&fullscreen=1' : '';
+    return url.includes('?') ? `${url}&autoplay=1${extra}` : `${url}?autoplay=1${extra}`;
   }
 }
 
@@ -484,12 +484,8 @@ export function getCaptions(): Promise<CaptionTrack[]> {
 }
 
 export function prefetchDetail(slug: string) {
-  const key = `prefetch:detail:${slug}`;
-  if (!slug || prefetchKeys.has(key)) return;
-  prefetchKeys.add(key);
-  enqueuePrefetch(async () => {
-    await getDetail(slug);
-  });
+  if (!slug) return;
+  void getDetail(slug).catch(() => {});
 }
 
 export function cacheDetail(detail: MediaDetail) {

@@ -15,7 +15,7 @@ export default function MyList() {
       </header>
       {favorites.length === 0 ? (
         <p className="empty-state">
-          Aucun favori pour le moment. Ajoute un titre avec ♡ depuis le catalogue.{' '}
+          Aucun favori pour le moment. Ajoute un titre depuis le catalogue.{' '}
           <Link to="/">Retour à l’accueil</Link>
         </p>
       ) : (

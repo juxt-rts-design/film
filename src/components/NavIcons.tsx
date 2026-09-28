@@ -86,6 +86,31 @@ export function IconPlay({ className }: IconProps) {
   );
 }
 
+export function IconInfo({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 11v5M12 8h.01" />
+    </Svg>
+  );
+}
+
+export function IconBack({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M15 6l-6 6 6 6" />
+    </Svg>
+  );
+}
+
+export function IconCheck({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M5 12l5 5L19 7" />
+    </Svg>
+  );
+}
+
 export function IconHeart({ className }: IconProps) {
   return (
     <Svg className={className}>

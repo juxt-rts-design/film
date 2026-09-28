@@ -59,7 +59,7 @@ export default function Home() {
     (tab: ContentTab) => {
       const next = new URLSearchParams();
       if (tab !== 'accueil') next.set('tab', tab);
-      setParams(next);
+      setParams(next, { replace: true });
     },
     [setParams],
   );
@@ -69,7 +69,7 @@ export default function Home() {
       const next = new URLSearchParams();
       next.set('tab', 'genres');
       if (genreId) next.set('genre', genreId);
-      setParams(next);
+      setParams(next, { replace: true });
     },
     [setParams],
   );

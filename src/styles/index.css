@@ -46,6 +46,7 @@ html, body, #root {
 
 html {
   scroll-padding-top: calc(72px + env(safe-area-inset-top, 0px));
+  -webkit-overflow-scrolling: touch;
 }
 
 html {
@@ -2812,6 +2813,9 @@ main {
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .media-row-scroller::-webkit-scrollbar {
@@ -2935,6 +2939,7 @@ main {
   font-family: 'Sora', 'Outfit', sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
+  white-space: nowrap;
 }
 
 .nf-nav__logo em {
@@ -3163,13 +3168,23 @@ main {
 .nf-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-height: 44px;
   padding: 11px 22px;
   border: 0;
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
   color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.nf-btn__info-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .nf-btn--play {
@@ -3333,6 +3348,25 @@ main {
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-btn__svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.fav-btn__svg.is-filled {
+  fill: currentColor;
+}
+
+.fav-btn__plus {
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 700;
 }
 
 .fav-btn.is-on {
@@ -3485,8 +3519,34 @@ main {
 @media (hover: none) {
   .media-card__dock,
   .continue-info {
+    display: none;
+  }
+
+  .anime-card-overlay {
     opacity: 1;
-    pointer-events: auto;
+  }
+
+  .play-chip {
+    width: 56px;
+    height: 56px;
+  }
+
+  .play-chip__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .anime-card-hit,
+  .nf-btn--play,
+  .media-card__btn--play {
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .nf-btn {
+    min-height: 48px;
+    padding: 14px 22px;
+    font-size: 1rem;
   }
 }
 
@@ -3859,6 +3919,15 @@ main {
   width: 42px;
   padding: 0;
   font-size: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nf-watch__back-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .nf-watch__overlay-back {
@@ -4234,16 +4303,23 @@ main {
     --m-bottom-nav-height: 58px;
   }
 
-  .nf-nav__logo span {
-    display: none;
+  .nf-nav__logo img {
+    height: 32px;
   }
 
-  .nf-nav__logo img {
-    height: 40px;
+  .nf-nav__logo span {
+    font-size: 1.02rem;
+  }
+
+  .media-row-scroller {
+    gap: 8px;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    scroll-padding-inline: 12px;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
-    overflow-x: clip;
+    overflow-x: hidden;
   }
 
   .app > main {

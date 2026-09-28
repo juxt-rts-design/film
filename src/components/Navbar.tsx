@@ -102,6 +102,7 @@ export default function Navbar() {
               <Link
                 key={item.id}
                 to={item.to}
+                replace
                 className={`nf-nav__link ${isTab(item.tab) ? 'is-active' : ''}`}
                 aria-current={isTab(item.tab) ? 'page' : undefined}
                 onClick={goBrowse}

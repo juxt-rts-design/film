@@ -26,6 +26,7 @@ export default function HistoryPage() {
                 <Link
                   to={resumePath(entry)}
                   className="history-item__link"
+                  onPointerDown={() => prefetchDetail(entry.slug)}
                   onMouseEnter={() => prefetchDetail(entry.slug)}
                 >
                   <img src={posterUrl(entry.poster)} alt="" />

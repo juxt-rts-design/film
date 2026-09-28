@@ -1,6 +1,7 @@
 import { toggleFavorite } from '../lib/favorites';
 import { useIsFavorite } from '../hooks/useFavorites';
 import type { MediaItem } from '../types';
+import { IconCheck, IconHeart } from './NavIcons';
 
 interface Props {
   item: Pick<MediaItem, 'id' | 'slug' | 'title' | 'poster' | 'type' | 'year'>;
@@ -22,7 +23,11 @@ export default function FavoriteButton({ item, className = '' }: Props) {
         toggleFavorite(item);
       }}
     >
-      {active ? (className.includes('fav-btn--plus') ? '✓' : '♥') : className.includes('fav-btn--plus') ? '+' : '♡'}
+      {className.includes('fav-btn--plus') ? (
+        active ? <IconCheck className="fav-btn__svg" /> : <span className="fav-btn__plus">+</span>
+      ) : (
+        <IconHeart className={`fav-btn__svg ${active ? 'is-filled' : ''}`} />
+      )}
     </button>
   );
 }

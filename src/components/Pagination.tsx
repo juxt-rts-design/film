@@ -50,7 +50,7 @@ export default function Pagination({ page, totalPages, onPageChange, className =
         onClick={() => go(page - 1)}
         aria-label="Page précédente"
       >
-        ‹
+        Préc.
       </button>
 
       {pages.map((item, index) =>
@@ -78,7 +78,7 @@ export default function Pagination({ page, totalPages, onPageChange, className =
         onClick={() => go(page + 1)}
         aria-label="Page suivante"
       >
-        ›
+        Suiv.
       </button>
     </nav>
   );

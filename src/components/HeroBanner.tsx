@@ -4,6 +4,7 @@ import type { MediaItem } from '../types';
 import { prefetchDetail, posterUrl, watchPath } from '../lib/api';
 import { getHistory, isResumable, resumePath } from '../lib/history';
 import { useTitleModal } from '../context/TitleModalContext';
+import { IconInfo, IconPlay } from './NavIcons';
 
 interface Props {
   items: MediaItem[];
@@ -30,6 +31,10 @@ export default function HeroBanner({ items, tag = 'À la une' }: Props) {
 
   const playTo = resumable && history ? resumePath(history) : watchPath(current.slug);
 
+  function warm() {
+    prefetchDetail(current.slug);
+  }
+
   return (
     <section className="nf-hero">
       <div
@@ -45,7 +50,7 @@ export default function HeroBanner({ items, tag = 'À la une' }: Props) {
             current.type === 'tv' ? 'Série' : 'Film',
             current.year,
             current.quality,
-            current.rating ? `★ ${current.rating.toFixed(1)}` : '',
+            current.rating ? current.rating.toFixed(1) : '',
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -55,12 +60,15 @@ export default function HeroBanner({ items, tag = 'À la une' }: Props) {
           <Link
             to={playTo}
             className="nf-btn nf-btn--play"
-            onMouseEnter={() => prefetchDetail(current.slug)}
+            onPointerDown={warm}
+            onMouseEnter={warm}
           >
-            ▶ {resumable ? 'Reprendre' : 'Lecture'}
+            <IconPlay className="nf-btn__play-icon" />
+            {resumable ? 'Reprendre' : 'Lecture'}
           </Link>
           <button type="button" className="nf-btn nf-btn--info" onClick={() => openInfo(current)}>
-            ℹ Plus d’infos
+            <IconInfo className="nf-btn__info-icon" />
+            Plus d’infos
           </button>
         </div>
       </div>

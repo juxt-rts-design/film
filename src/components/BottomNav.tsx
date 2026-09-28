@@ -53,6 +53,7 @@ export default function BottomNav() {
             <li key={item.id}>
               <Link
                 to={item.to}
+                replace={item.to === '/' || item.to.startsWith('/?')}
                 className={`m-bottom-nav__tab ${active ? 'is-active' : ''}`}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => window.scrollTo(0, 0)}
