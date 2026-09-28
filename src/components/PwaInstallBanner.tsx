@@ -76,7 +76,7 @@ export default function PwaInstallBanner() {
   return (
     <div className="pwa-banner" role="dialog" aria-label="Installer Juxt-Ciné">
       <div className="pwa-banner__body">
-        <img src="/icons/icon-192.png" alt="" className="pwa-banner__icon" width={40} height={40} />
+        <img src="/logo.png" alt="" className="pwa-banner__icon" width={40} height={40} />
         <div className="pwa-banner__text">
           <strong>Installer Juxt-Ciné</strong>
           {iosHint ? (

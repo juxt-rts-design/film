@@ -90,7 +90,7 @@ export default function Navbar() {
           </button>
 
           <Link to="/" className="nf-nav__logo" onClick={goBrowse}>
-            <img src="/logo.svg" alt="" />
+            <img src="/logo.png" alt="Juxt-Ciné" />
             <span>
               <em>Juxt</em>
               <strong>-Ciné</strong>

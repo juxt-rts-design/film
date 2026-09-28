@@ -427,12 +427,17 @@ export function withAutoplay(url: string) {
   try {
     const parsed = new URL(url);
     parsed.searchParams.delete('muted');
+    parsed.searchParams.delete('fullscreen');
+    parsed.searchParams.delete('fs');
     parsed.searchParams.set('autoplay', '1');
     parsed.searchParams.set('autoPlay', '1');
+    parsed.searchParams.set('playsinline', '1');
+    parsed.searchParams.set('webkit-playsinline', '1');
     return parsed.toString();
   } catch {
     if (/autoplay=/i.test(url)) return url;
-    return url.includes('?') ? `${url}&autoplay=1` : `${url}?autoplay=1`;
+    const join = url.includes('?') ? '&' : '?';
+    return `${url}${join}autoplay=1&playsinline=1`;
   }
 }
 

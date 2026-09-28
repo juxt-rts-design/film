@@ -45,7 +45,7 @@ html, body, #root {
 }
 
 html {
-  scroll-padding-top: 72px;
+  scroll-padding-top: calc(72px + env(safe-area-inset-top, 0px));
 }
 
 html {
@@ -90,7 +90,7 @@ main {
 }
 
 .app:not(.is-watch) > main {
-  padding-top: 72px;
+  padding-top: calc(72px + env(safe-area-inset-top, 0px));
 }
 
 /* ── Navbar ── */
@@ -2172,6 +2172,15 @@ main {
   font-size: 1.35rem;
   font-weight: 800;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
 }
 
 .footer-name-juxt {
@@ -2864,7 +2873,8 @@ main {
   position: fixed;
   inset: 0 0 auto;
   z-index: 80;
-  min-height: 64px;
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background: #000;
   border-bottom: 0;
 }
@@ -2893,7 +2903,7 @@ main {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 0 16px;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
 }
 
 .nf-nav__menu {
@@ -2916,7 +2926,9 @@ main {
 }
 
 .nf-nav__logo img {
-  height: 32px;
+  height: 36px;
+  width: auto;
+  object-fit: contain;
 }
 
 .nf-nav__logo span {
@@ -2966,6 +2978,9 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .nf-nav__search {
@@ -3047,14 +3062,17 @@ main {
 
 .nf-nav__icon {
   display: inline-flex;
-  height: 40px;
-  width: 40px;
+  height: 44px;
+  width: 44px;
+  min-height: 44px;
+  min-width: 44px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nf-nav__icon.is-active,
@@ -3794,6 +3812,7 @@ main {
 
 .nf-watch__top {
   top: 0;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent);
 }
 
@@ -3840,6 +3859,18 @@ main {
   width: 42px;
   padding: 0;
   font-size: 1.3rem;
+}
+
+.nf-watch__overlay-back {
+  position: absolute;
+  top: 10px;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  z-index: 40;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
 .nf-watch__ctl:disabled {
@@ -4092,6 +4123,7 @@ main {
   border-radius: 10px;
   flex-shrink: 0;
   background: #040605;
+  object-fit: contain;
 }
 
 .pwa-banner__text strong {
@@ -4149,11 +4181,65 @@ main {
   display: none;
 }
 
+/* Lecture mobile / iPhone (classe JS) : cadre 16:9, pas de cinéma plein écran auto */
+.nf-watch.nf-watch--mobile {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #040605;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.nf-watch.nf-watch--mobile .nf-watch__stage,
+.nf-watch.nf-watch--mobile .nf-watch__stage .player-wrapper,
+.nf-watch.nf-watch--mobile .nf-watch__stage .player-empty {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  order: 0;
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  aspect-ratio: 16 / 9;
+  max-height: none;
+  border-radius: 0;
+  display: block;
+  background: #000;
+}
+
+.nf-watch.nf-watch--mobile .nf-watch__stage iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.nf-watch.nf-watch--mobile .nf-watch__mobile-body {
+  order: 1;
+  flex: 0 0 auto;
+  padding: 14px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  background: #040605;
+}
+
 /* ── Mobile (≤767px) — barre bas + watch app-like ; desktop inchangé ── */
 @media (max-width: 767px) {
   :root {
     --nav-gap: 8px;
     --m-bottom-nav-height: 58px;
+  }
+
+  .nf-nav__logo span {
+    display: none;
+  }
+
+  .nf-nav__logo img {
+    height: 40px;
   }
 
   body {
@@ -4234,6 +4320,9 @@ main {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: #040605;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   /* Lecteur flux en haut — hauteur réelle (évite écran noir) */

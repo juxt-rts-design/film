@@ -258,6 +258,16 @@ export default function Watch() {
             <div className="spinner" />
           </div>
         )}
+        {mobileWatch ? (
+          <button
+            type="button"
+            className="nf-watch__back nf-watch__overlay-back"
+            onClick={goBack}
+            aria-label="Retour"
+          >
+            ←
+          </button>
+        ) : null}
       </div>
 
       {mobileWatch ? null : (
@@ -279,9 +289,6 @@ export default function Watch() {
       {mobileWatch ? (
         <section className="nf-watch__mobile-body">
           <div className="nf-watch__mobile-head">
-            <button type="button" className="nf-watch__back" onClick={goBack} aria-label="Retour">
-              ←
-            </button>
             <div className="nf-watch__mobile-title">
               <strong>
                 {isSeries && episode

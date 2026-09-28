@@ -44,9 +44,9 @@ export default function MobileDrawer({ open, onClose, children }: Props) {
           open ? 'translate-x-0' : '-translate-x-full',
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
+        <div className="flex items-center justify-between border-b border-white/8 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top,0px))]">
           <Link to="/" className="flex items-center gap-2" onClick={onClose}>
-            <img src="/logo.svg" alt="" className="h-8 w-auto" />
+            <img src="/logo.png" alt="Juxt-Ciné" className="h-9 w-auto" />
             <span className="font-display text-base font-extrabold">
               <span className="italic text-juxt-text">Juxt</span>
               <span className="text-juxt-primary">-Ciné</span>

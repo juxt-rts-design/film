@@ -26,6 +26,7 @@ export default function Footer() {
         <div className="footer-top grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
           <div className="footer-brand">
             <p className="footer-name">
+              <img src="/logo.png" alt="" className="footer-logo" />
               <span className="footer-name-juxt">Juxt</span>
               <span className="footer-name-senpai">-Ciné</span>
             </p>

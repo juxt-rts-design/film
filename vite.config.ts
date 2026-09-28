@@ -1,8 +1,11 @@
+import dns from 'node:dns';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { mediaProxyPlugin } from './server/media-proxy.js';
+
+dns.setDefaultResultOrder('ipv4first');
 
 export default defineConfig({
   plugins: [
@@ -12,8 +15,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
+        'logo.png',
+        'favicon-32.png',
         'juxt-logo.png',
-        'logo.svg',
         'icons/apple-touch-icon.png',
         'icons/icon-192.png',
         'icons/icon-512.png',

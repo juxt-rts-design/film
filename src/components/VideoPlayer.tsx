@@ -17,6 +17,28 @@ function tryPlay(video: HTMLVideoElement) {
   void video.play().catch(() => {});
 }
 
+/** Sort d’un plein écran déclenché tout seul au lancement — le plein écran manuel reste possible après. */
+function useRejectAutoFullscreen(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const started = Date.now();
+    const exitAuto = () => {
+      if (Date.now() - started > 2000) return;
+      if (document.fullscreenElement) {
+        void document.exitFullscreen?.().catch(() => {});
+      }
+      const doc = document as Document & { webkitExitFullscreen?: () => void };
+      doc.webkitExitFullscreen?.();
+    };
+    document.addEventListener('fullscreenchange', exitAuto);
+    document.addEventListener('webkitfullscreenchange', exitAuto);
+    return () => {
+      document.removeEventListener('fullscreenchange', exitAuto);
+      document.removeEventListener('webkitfullscreenchange', exitAuto);
+    };
+  }, [active]);
+}
+
 function EmbedFrame({ src, title }: { src: string; title: string }) {
   if (!src) return null;
 
@@ -26,11 +48,9 @@ function EmbedFrame({ src, title }: { src: string; title: string }) {
       title={title}
       src={src}
       allowFullScreen
-      // Plein écran navigateur réel (sinon le lecteur reste dans le cadre 16:9)
       allow="autoplay *; encrypted-media *; picture-in-picture *; fullscreen *"
       referrerPolicy="strict-origin-when-cross-origin"
       sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-modals allow-fullscreen"
-      // Compat navigateurs / lecteurs embed
       {...{
         webkitallowfullscreen: 'true',
         mozallowfullscreen: 'true',
@@ -59,6 +79,7 @@ export default function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   onErrorRef.current = onError;
   onProgressRef.current = onProgress;
+  useRejectAutoFullscreen(Boolean(src || embedUrl) && !loading);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -88,6 +109,9 @@ export default function VideoPlayer({
       }
       if (autoPlay) tryPlay(video);
     };
+
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
 
     const useHls = isHls || src.includes('.m3u8');
 
