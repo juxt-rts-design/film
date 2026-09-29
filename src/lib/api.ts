@@ -21,6 +21,8 @@ const TTL = {
 type Json = Record<string, unknown>;
 
 export const PLAYER_ORDER = ['vidzy', 'uqload', 'voe', 'filmoon'];
+/** Films : Uqload d’abord, Vidzy si Uqload n’est pas là. */
+export const FILM_PLAYER_ORDER = ['uqload', 'vidzy', 'voe', 'filmoon'];
 export const PLAYER_LABELS: Record<string, string> = {
   vidzy: 'Vidzy',
   uqload: 'Uqload',
@@ -396,20 +398,25 @@ export function listEpisodeNumbers(detail: MediaDetail, version: string) {
   return detail.episodeInfo.map((item) => item.episode);
 }
 
+function playerOrderFor(detail: MediaDetail) {
+  return detail.type === 'tv' ? PLAYER_ORDER : FILM_PLAYER_ORDER;
+}
+
 export function pickEmbed(detail: MediaDetail, version: string, episode: number, player = '') {
   const candidates: string[] = [];
+  const order = playerOrderFor(detail);
 
   if (detail.type === 'tv') {
     const ep = detail.episodes[version]?.[String(episode)] || {};
     if (player && ep[player]) candidates.push(ep[player]);
-    for (const key of PLAYER_ORDER) {
+    for (const key of order) {
       if (ep[key]) candidates.push(ep[key]);
     }
     candidates.push(...Object.values(ep));
   } else {
     const sources = detail.players[player] || {};
     candidates.push(sources[version] || sources.default || sources.vfq || sources.vf || '');
-    for (const key of PLAYER_ORDER) {
+    for (const key of order) {
       const pack = detail.players[key] || {};
       candidates.push(pack[version] || pack.default || pack.vfq || pack.vf || '');
     }
@@ -442,15 +449,16 @@ export function withAutoplay(url: string) {
 }
 
 export function listPlayers(detail: MediaDetail, version: string, episode: number) {
+  const order = playerOrderFor(detail);
   if (detail.type === 'tv') {
     const ep = detail.episodes[version]?.[String(episode)] || {};
-    return PLAYER_ORDER.filter((key) => isSafeEmbed(ep[key] || '')).map((key) => ({
+    return order.filter((key) => isSafeEmbed(ep[key] || '')).map((key) => ({
       key,
       label: PLAYER_LABELS[key] || key,
       url: ep[key],
     }));
   }
-  return PLAYER_ORDER.filter((key) => {
+  return order.filter((key) => {
     const pack = detail.players[key] || {};
     const url = pack[version] || pack.default || pack.vfq || pack.vf || '';
     return isSafeEmbed(url);
