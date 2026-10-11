@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /api/
+Disallow: /proxy
+Disallow: /stream
+Disallow: /download
+Disallow: /watch
+Allow: /
+
+Sitemap: https://92-222-80-91.sslip.io/sitemap.xml

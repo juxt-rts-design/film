@@ -2,7 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { guardInspect } from './lib/guardUi';
 import './styles/index.css';
+
+if (import.meta.env.PROD) {
+  guardInspect();
+}
 
 const ALLOWED_EXTERNAL =
   /(?:^|\.)(wa\.me|whatsapp\.com|t\.me|telegram\.org|telegram\.me)$/i;
