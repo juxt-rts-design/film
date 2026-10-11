@@ -22,6 +22,9 @@ export default defineConfig({
         'icons/icon-192.png',
         'icons/icon-512.png',
         'icons/icon-512-maskable.png',
+        'robots.txt',
+        'sitemap.xml',
+        'hexaro-trap.html',
       ],
       manifest: {
         name: 'Juxt-Ciné',
@@ -60,7 +63,14 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         // Le SW ne doit jamais répondre index.html sur ces routes (flux & téléchargements).
-        navigateFallbackDenylist: [/^\/api\//, /^\/proxy/, /^\/stream/, /^\/download/],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/proxy/,
+          /^\/stream/,
+          /^\/download/,
+          /^\/hexaro-trap\.html$/,
+          /^\/(phpmyadmin|pma|wp-admin|wp-login|administrator|admin|\.env|\.git)/,
+        ],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
         runtimeCaching: [
           {

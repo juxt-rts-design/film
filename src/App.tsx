@@ -11,17 +11,25 @@ import MovieDetail from './pages/MovieDetail';
 import Watch from './pages/Watch';
 import MyList from './pages/MyList';
 import HistoryPage from './pages/HistoryPage';
+import TrapPage from './pages/TrapPage';
 
 export default function App() {
   const location = useLocation();
   const watch = location.pathname.startsWith('/watch');
   const moviePage = location.pathname.startsWith('/movie/');
-  const hideChrome = watch || moviePage;
+  const known =
+    location.pathname === '/' ||
+    location.pathname === '/search' ||
+    location.pathname === '/liste' ||
+    location.pathname === '/historique' ||
+    moviePage ||
+    watch;
+  const hideChrome = watch || moviePage || !known;
 
   return (
     <TitleModalProvider>
       <ScrollToTop />
-      <div className={`app flex min-h-screen flex-col ${watch ? 'is-watch' : ''}`}>
+      <div className={`app flex min-h-screen flex-col ${watch || !known ? 'is-watch' : ''}`}>
         {hideChrome ? null : <Navbar />}
         <main className="flex-1">
           <Routes>
@@ -31,6 +39,7 @@ export default function App() {
             <Route path="/historique" element={<HistoryPage />} />
             <Route path="/movie/:slug" element={<MovieDetail />} />
             <Route path="/watch/:slug" element={<Watch />} />
+            <Route path="*" element={<TrapPage />} />
           </Routes>
         </main>
         {hideChrome ? null : <Footer />}
